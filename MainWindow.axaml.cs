@@ -1,713 +1,487 @@
-using Avalonia;
-using Avalonia.Controls;
-using Avalonia.Controls.ApplicationLifetimes;
-using Avalonia.Controls.Shapes;
-using Avalonia.Input;
-using Avalonia.Media;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
 using System.Threading;
 using System.Threading.Tasks;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.Shapes;
+using Avalonia.Input;
+using Avalonia.Media;
+using Avalonia.Threading;
 
-namespace EcosystemSim
+namespace EcosystemSim;
+
+public partial class MainWindow : Window
 {
-    public partial class MainWindow : Window
+    private readonly SimulationSettings _settings = new();
+
+    private Ecosystem _ecosystem = new();
+    private CancellationTokenSource _simulationCts = new();
+    private Task? _simulationTask;
+    private readonly DispatcherTimer _uiTimer;
+
+    private SimulationState _state = SimulationState.NotStarted;
+    private bool _worldSeeded;
+
+    private Button _startPauseButton = null!;
+    private Button _resetButton = null!;
+    private Button _applySettingsButton = null!;
+    private TextBox _stepLimitBox = null!;
+    private TextBox _initialPreyBox = null!;
+    private TextBox _initialPredatorBox = null!;
+    private TextBox _initialFoodBox = null!;
+    private TextBox _tickDelayBox = null!;
+    private TextBox _renderDelayBox = null!;
+    private TextBlock _validationText = null!;
+
+    private TextBlock _statusText = null!;
+    private TextBlock _stepText = null!;
+    private TextBlock _speciesText = null!;
+    private TextBlock _foodText = null!;
+    private TextBlock _waterText = null!;
+    private ProgressBar _simulationProgressBar = null!;
+
+    private ComboBox _graphSelector = null!;
+    private Canvas _graphCanvas = null!;
+
+    public MainWindow()
     {
-        public CancellationTokenSource appCancellation = new CancellationTokenSource();
-        Random rand = new Random();
-        public Ecosystem ecosystem = new Ecosystem();
-        bool paused = false;
-        bool simulationLineGraphsvisible = true;
-        bool simulationProgressBarVisible = true;
-        int max_simulation_steps = 30000;
-        progressBar progress;
-        public bool running;
-        public int amountOfSpawnedFood = 300; // add ui for this
-        public int amountOfSpawnedSpecies = 150;
-        public int amountOfSpawnedSpeciesPredator = 45;
-        public enum shownGraphState
+        InitializeComponent();
+        BindControls();
+
+        KeyDown += OnKeyDown;
+        Closing += (_, _) => _simulationCts.Cancel();
+
+        InitializeSimulation();
+
+        _uiTimer = new DispatcherTimer
         {
-            population,
-            femaleToMale,
-            sproutedToUnsprouted,
-            traits,
-            none
-        }
-        public shownGraphState currentUIState;
-        public MainWindow()
+            Interval = TimeSpan.FromMilliseconds(_settings.RenderIntervalMs)
+        };
+        _uiTimer.Tick += (_, _) => UpdateUiFrame();
+        _uiTimer.Start();
+    }
+
+    private void BindControls()
+    {
+        _startPauseButton = this.FindControl<Button>("StartPauseButton")!;
+        _resetButton = this.FindControl<Button>("ResetButton")!;
+        _applySettingsButton = this.FindControl<Button>("ApplySettingsButton")!;
+        _stepLimitBox = this.FindControl<TextBox>("StepLimitBox")!;
+        _initialPreyBox = this.FindControl<TextBox>("InitialPreyBox")!;
+        _initialPredatorBox = this.FindControl<TextBox>("InitialPredatorBox")!;
+        _initialFoodBox = this.FindControl<TextBox>("InitialFoodBox")!;
+        _tickDelayBox = this.FindControl<TextBox>("TickDelayBox")!;
+        _renderDelayBox = this.FindControl<TextBox>("RenderDelayBox")!;
+        _validationText = this.FindControl<TextBlock>("ValidationText")!;
+
+        _statusText = this.FindControl<TextBlock>("StatusText")!;
+        _stepText = this.FindControl<TextBlock>("StepText")!;
+        _speciesText = this.FindControl<TextBlock>("SpeciesText")!;
+        _foodText = this.FindControl<TextBlock>("FoodText")!;
+        _waterText = this.FindControl<TextBlock>("WaterText")!;
+        _simulationProgressBar = this.FindControl<ProgressBar>("SimulationProgressBar")!;
+
+        _graphSelector = this.FindControl<ComboBox>("GraphSelector")!;
+        _graphCanvas = this.FindControl<Canvas>("GraphCanvas")!;
+
+        _startPauseButton.Click += OnStartPauseClicked;
+        _resetButton.Click += OnResetClicked;
+        _applySettingsButton.Click += (_, _) =>
         {
-            currentUIState = shownGraphState.none;
-
-            ecosystem.start();
-
-            InitializeComponent();
-
-            this.Closing += (s, e) =>
+            if (ApplySettingsFromUi())
             {
-                appCancellation.Cancel();
+                UpdateControlState();
+                UpdateUiFrame();
+            }
+        };
+        _graphSelector.SelectionChanged += (_, _) => DrawSelectedGraph();
+    }
+
+    private void InitializeSimulation()
+    {
+        _ecosystem = new Ecosystem();
+        _ecosystem.start();
+        EcosystemCanvas.EcosystemData = _ecosystem;
+
+        SyncSettingsToUi();
+        UpdateControlState();
+        UpdateUiFrame();
+    }
+
+    private async void OnStartPauseClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        switch (_state)
+        {
+            case SimulationState.NotStarted:
+            case SimulationState.Completed:
+            case SimulationState.Cancelled:
+                await StartSimulationAsync();
+                break;
+            case SimulationState.Running:
+                PauseSimulation();
+                break;
+            case SimulationState.Paused:
+                ResumeSimulation();
+                break;
+        }
+    }
+
+    private async void OnResetClicked(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        await ResetSimulationAsync();
+    }
+
+    private async Task StartSimulationAsync()
+    {
+        if (_simulationTask is { IsCompleted: false })
+        {
+            return;
+        }
+
+        if (!ApplySettingsFromUi())
+        {
+            return;
+        }
+
+        if (!_worldSeeded)
+        {
+            SeedWorld();
+        }
+
+        _simulationCts = new CancellationTokenSource();
+        _state = SimulationState.Running;
+        UpdateControlState();
+
+        _simulationTask = Task.Run(() => SimulationLoopAsync(_simulationCts.Token));
+        await Task.CompletedTask;
+    }
+
+    private async Task ResetSimulationAsync()
+    {
+        _simulationCts.Cancel();
+
+        if (_simulationTask is { IsCompleted: false })
+        {
+            try
+            {
+                await _simulationTask;
+            }
+            catch (OperationCanceledException)
+            {
+            }
+        }
+
+        _simulationTask = null;
+        _simulationCts = new CancellationTokenSource();
+        _state = SimulationState.NotStarted;
+        _worldSeeded = false;
+        _validationText.Text = string.Empty;
+
+        InitializeSimulation();
+    }
+
+    private async Task SimulationLoopAsync(CancellationToken token)
+    {
+        try
+        {
+            while (!token.IsCancellationRequested)
+            {
+                if (_state == SimulationState.Paused)
+                {
+                    await Task.Delay(20, token);
+                    continue;
+                }
+
+                if (_state != SimulationState.Running)
+                {
+                    break;
+                }
+
+                bool shouldComplete;
+                lock (_ecosystem.SyncRoot)
+                {
+                    shouldComplete = _ecosystem.simulationSteps >= _settings.MaxSimulationSteps || _ecosystem.activeSpecies.Count == 0;
+                }
+
+                if (shouldComplete)
+                {
+                    _state = SimulationState.Completed;
+                    break;
+                }
+
+                _ecosystem.UpdateTick();
+
+                if (_settings.TickDelayMs > 0)
+                {
+                    await Task.Delay(_settings.TickDelayMs, token);
+                }
+                else
+                {
+                    await Task.Yield();
+                }
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            _state = SimulationState.Cancelled;
+        }
+        finally
+        {
+            await Dispatcher.UIThread.InvokeAsync(() =>
+            {
+                UpdateControlState();
+                UpdateUiFrame();
+            });
+        }
+    }
+
+    private void PauseSimulation()
+    {
+        if (_state != SimulationState.Running)
+        {
+            return;
+        }
+
+        _state = SimulationState.Paused;
+        UpdateControlState();
+    }
+
+    private void ResumeSimulation()
+    {
+        if (_state != SimulationState.Paused)
+        {
+            return;
+        }
+
+        _state = SimulationState.Running;
+        UpdateControlState();
+    }
+
+    private void OnKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Space)
+        {
+            return;
+        }
+
+        if (_state == SimulationState.Running)
+        {
+            PauseSimulation();
+        }
+        else if (_state == SimulationState.Paused)
+        {
+            ResumeSimulation();
+        }
+    }
+
+    private void SeedWorld()
+    {
+        lock (_ecosystem.SyncRoot)
+        {
+            Spawner.SeedInitialWorld(_ecosystem, _settings, 1600, 900);
+        }
+
+        _worldSeeded = true;
+    }
+
+    private bool ApplySettingsFromUi()
+    {
+        if (!TryParseNonNegative(_stepLimitBox.Text, 1, out int maxSteps) ||
+            !TryParseNonNegative(_initialPreyBox.Text, 0, out int prey) ||
+            !TryParseNonNegative(_initialPredatorBox.Text, 0, out int predators) ||
+            !TryParseNonNegative(_initialFoodBox.Text, 0, out int food) ||
+            !TryParseNonNegative(_tickDelayBox.Text, 0, out int tickDelay) ||
+            !TryParseNonNegative(_renderDelayBox.Text, 16, out int renderDelay))
+        {
+            _validationText.Text = "Values must be integers. Steps >= 1, Render interval >= 16, others >= 0.";
+            return false;
+        }
+
+        _settings.MaxSimulationSteps = maxSteps;
+        _settings.InitialPrey = prey;
+        _settings.InitialPredators = predators;
+        _settings.InitialFood = food;
+        _settings.TickDelayMs = tickDelay;
+        _settings.RenderIntervalMs = renderDelay;
+
+        _uiTimer.Interval = TimeSpan.FromMilliseconds(_settings.RenderIntervalMs);
+        _validationText.Text = string.Empty;
+        return true;
+    }
+
+    private static bool TryParseNonNegative(string? raw, int min, out int value)
+    {
+        if (int.TryParse(raw, out int parsed) && parsed >= min)
+        {
+            value = parsed;
+            return true;
+        }
+
+        value = 0;
+        return false;
+    }
+
+    private void SyncSettingsToUi()
+    {
+        _stepLimitBox.Text = _settings.MaxSimulationSteps.ToString();
+        _initialPreyBox.Text = _settings.InitialPrey.ToString();
+        _initialPredatorBox.Text = _settings.InitialPredators.ToString();
+        _initialFoodBox.Text = _settings.InitialFood.ToString();
+        _tickDelayBox.Text = _settings.TickDelayMs.ToString();
+        _renderDelayBox.Text = _settings.RenderIntervalMs.ToString();
+    }
+
+    private void UpdateControlState()
+    {
+        _statusText.Text = $"Status: {_state}";
+
+        _startPauseButton.Content = _state switch
+        {
+            SimulationState.NotStarted => "Start Simulation",
+            SimulationState.Running => "Pause Simulation",
+            SimulationState.Paused => "Resume Simulation",
+            SimulationState.Completed => "Restart Simulation",
+            SimulationState.Cancelled => "Start Simulation",
+            _ => "Start Simulation"
+        };
+
+        bool settingsEditable = _state is SimulationState.NotStarted or SimulationState.Completed or SimulationState.Cancelled;
+
+        _stepLimitBox.IsEnabled = settingsEditable;
+        _initialPreyBox.IsEnabled = settingsEditable;
+        _initialPredatorBox.IsEnabled = settingsEditable;
+        _initialFoodBox.IsEnabled = settingsEditable;
+        _tickDelayBox.IsEnabled = settingsEditable;
+        _renderDelayBox.IsEnabled = settingsEditable;
+        _applySettingsButton.IsEnabled = settingsEditable;
+    }
+
+    private void UpdateUiFrame()
+    {
+        SimulationSnapshot snapshot = SimulationMetrics.CreateSnapshot(_ecosystem, _settings.MaxSimulationSteps);
+
+        _stepText.Text = $"Step: {snapshot.Step} / {_settings.MaxSimulationSteps}";
+        _speciesText.Text = $"Species: {snapshot.SpeciesCount}";
+        _foodText.Text = $"Food: {snapshot.FoodCount}";
+        _waterText.Text = $"Water Tiles: {snapshot.WaterCount}";
+        _simulationProgressBar.Value = snapshot.Progress;
+
+        EcosystemCanvas.Refresh();
+        DrawSelectedGraph();
+    }
+
+    private void DrawSelectedGraph()
+    {
+        int selectedIndex = _graphSelector.SelectedIndex;
+        if (selectedIndex == 4)
+        {
+            _graphCanvas.Children.Clear();
+            return;
+        }
+
+        List<List<double>> data;
+        List<IBrush> colors;
+        List<string> names;
+
+        lock (_ecosystem.SyncRoot)
+        {
+            switch (selectedIndex)
+            {
+                case 1:
+                    data = new List<List<double>> { new(_ecosystem.femaleSpecies), new(_ecosystem.maleSpecies) };
+                    colors = new List<IBrush> { Brushes.IndianRed, Brushes.Black };
+                    names = new List<string> { "Female", "Male" };
+                    break;
+                case 2:
+                    data = new List<List<double>> { new(_ecosystem.sproutedPlants), new(_ecosystem.unSproutedPlants) };
+                    colors = new List<IBrush> { Brushes.ForestGreen, Brushes.SaddleBrown };
+                    names = new List<string> { "Sprouted", "Unsprouted" };
+                    break;
+                case 3:
+                    data = new List<List<double>>
+                    {
+                        _ecosystem.averageEyeSight.Select(v => v / 10d).ToList(),
+                        new(_ecosystem.averageReproductionAge),
+                        new(_ecosystem.averageSpeedPrey)
+                    };
+                    colors = new List<IBrush> { Brushes.SeaGreen, Brushes.DodgerBlue, Brushes.Crimson };
+                    names = new List<string> { "Eye Sight / 10", "Reproduction", "Speed" };
+                    break;
+                default:
+                    data = new List<List<double>> { new(_ecosystem.populationSizes), new(_ecosystem.foodSizes) };
+                    colors = new List<IBrush> { Brushes.Red, Brushes.Green };
+                    names = new List<string> { "Population", "Food" };
+                    break;
+            }
+        }
+
+        DrawLineGraph(data, colors, names);
+    }
+
+    private void DrawLineGraph(IReadOnlyList<List<double>> datas, IReadOnlyList<IBrush> colors, IReadOnlyList<string> names)
+    {
+        _graphCanvas.Children.Clear();
+
+        double width = Math.Max(1, _graphCanvas.Bounds.Width - 20);
+        double height = Math.Max(1, _graphCanvas.Bounds.Height - 30);
+        if (width <= 1 || height <= 1)
+        {
+            return;
+        }
+
+        double yMax = datas.SelectMany(d => d).DefaultIfEmpty(1).Max();
+        yMax = Math.Max(1, yMax * 1.1);
+
+        for (int j = 0; j < datas.Count; j++)
+        {
+            List<double> data = datas[j];
+            if (data.Count == 0)
+            {
+                continue;
+            }
+
+            var polyline = new Polyline
+            {
+                Stroke = colors[j],
+                StrokeThickness = 2
             };
 
-            this.KeyDown += OnKeyDown;
+            double xStep = data.Count > 1 ? width / (data.Count - 1) : 0;
+            double yScale = height / yMax;
 
-            EcosystemCanvas.EcosystemData = ecosystem;
+            for (int i = 0; i < data.Count; i++)
+            {
+                double x = 10 + (data.Count > 1 ? i * xStep : 0);
+                double y = 10 + height - (data[i] * yScale);
+                polyline.Points.Add(new Point(x, y));
+            }
 
-            progress = new progressBar("Finished Progress");
-            progress.Show();
-            if (simulationProgressBarVisible)
-            {
-                progress.drawProgressBar(ecosystem.simulationSteps, max_simulation_steps);
-            }
-        }
-        private void OnKeyDown(object? sende, KeyEventArgs e)
-        {
-            if (e.Key == Key.Space)
-            {
-                paused = !paused;
-            }
-        }
-        public void updateSimulationSteps(int negative)
-        {
-            max_simulation_steps += 100 * negative;
-            progress.drawProgressBar(ecosystem.simulationSteps, max_simulation_steps);
-        }
-        public void updateProgressBar()
-        {
-            progress.drawProgressBar(ecosystem.simulationSteps, max_simulation_steps);
-        }
-        public void RunLoopCaller()
-        {
-            RunLoop(appCancellation.Token, progress);
+            _graphCanvas.Children.Add(polyline);
         }
 
-        private async void RunLoop(CancellationToken token, progressBar progress)
+        for (int i = 0; i < names.Count; i++)
         {
-            for (int i = 0; i < amountOfSpawnedSpecies + 1; i++)
+            var rect = new Rectangle
             {
-                ecosystem.activeSpecies.Add(new Species("5:500:1:2500:75:0:100", "5:500:0:2500:75:0:100", rand.Next(0, 1600), rand.Next(0, 900)));
-                ecosystem.activeSpecies[i].inherit_genes();
-            }
-            for (int i = 0; i < amountOfSpawnedSpeciesPredator + 1; i++)
+                Width = 14,
+                Height = 14,
+                Fill = colors[i]
+            };
+            Canvas.SetLeft(rect, 12);
+            Canvas.SetTop(rect, 12 + i * 18);
+            _graphCanvas.Children.Add(rect);
+
+            var text = new TextBlock
             {
-                ecosystem.activeSpecies.Add(new Species("5:500:1:2500:25:1:100", "5:500:0:2500:25:1:100", rand.Next(0, 1600), rand.Next(0, 900)));
-                ecosystem.activeSpecies[^1].inherit_genes();
-            }
-            for (int i = 0; i < amountOfSpawnedFood + 1; i++)
-            {
-                ecosystem.activeFood.Add(new FoodSpecies(1, rand.Next(0, 1600), rand.Next(0, 900), rand.Next(1, 4), 50, 500 + rand.Next(-50, 51), 1000 + rand.Next(-50, 51)));
-            }
-            for (int i = 0; i < 250; i++)
-            {
-                (double, double) pos = RandomPointInCircle(250, new Vector2(1200, 500));
-                Vector2 position = new Vector2((float)pos.Item1, (float)pos.Item2);
-                ecosystem.activeWater.Add(new WaterZone(1, (int)position.X, (int)position.Y));
-            }
-            for (int i = 0; i < 250; i++)
-            {
-                (double, double) pos = RandomPointInCircle(250, new Vector2(600, 350));
-                Vector2 position = new Vector2((float)pos.Item1, (float)pos.Item2);
-                ecosystem.activeWater.Add(new WaterZone(1, (int)position.X, (int)position.Y));
-            }
-            for (int i = 0; i < 50; i++)
-            {
-                (double, double) pos = RandomPointInCircle(50, new Vector2(100,500));
-                Vector2 position = new Vector2((float)pos.Item1, (float)pos.Item2);
-                ecosystem.activeWater.Add(new WaterZone(1, (int)position.X, (int)position.Y));
-            }
-            running = true;
-            var populationLineGraph = new LineGraphWindow("Populations Graph");
-            populationLineGraph.Show();
-            var femaleToMale = new LineGraphWindow("Female v Male Line Graph");
-            femaleToMale.Show();
-            var sproutedToUnsprouted = new LineGraphWindow("Sprouted v Un-Sprouted Line Graph");
-            sproutedToUnsprouted.Show();
-            var traits = new LineGraphWindow("Traits Line Graph");
-            traits.Show();
-            updateGraphs(populationLineGraph, femaleToMale, sproutedToUnsprouted, traits, token, progress);
-            while (!token.IsCancellationRequested && ecosystem.simulationSteps < max_simulation_steps && ecosystem.activeSpecies.Count != 0)
-            {
-                if (!paused)
-                {
-                    ecosystem.update();
-                    EcosystemCanvas.Refresh();
-                    await Task.Delay(10);
-                }
-            }
-        }
-        static (double, double) RandomPointInCircle(double radius, Vector2 offset)
-        {
-            Random random = new Random();
-            double angle = random.NextDouble() * MathF.PI * 2;
-            double distance = Math.Sqrt(random.NextDouble()) * radius;
-
-            double x = Math.Cos(angle) * distance;
-            double y = Math.Sin(angle) * distance;
-
-            x += offset.X;
-            y += offset.Y;
-
-            return (x, y);
-        }
-        private async void updateGraphs(LineGraphWindow populationLineGraph, LineGraphWindow femaleToMale, LineGraphWindow sproutedToUnsprouted, LineGraphWindow traits, CancellationToken token, progressBar progress)
-        {
-            while (!token.IsCancellationRequested && simulationLineGraphsvisible && ecosystem.simulationSteps < max_simulation_steps && ecosystem.activeSpecies.Count != 0)
-            {
-                if (currentUIState == shownGraphState.femaleToMale)
-                {
-                    femaleToMale.Show();
-                    populationLineGraph.Hide();
-                    sproutedToUnsprouted.Hide();
-                    traits.Hide();
-                }
-                else if (currentUIState == shownGraphState.population)
-                {
-                    femaleToMale.Hide();
-                    populationLineGraph.Show();
-                    sproutedToUnsprouted.Hide();
-                    traits.Hide();
-                }
-                else if (currentUIState == shownGraphState.traits)
-                {
-                    femaleToMale.Hide();
-                    populationLineGraph.Hide();
-                    sproutedToUnsprouted.Hide();
-                    traits.Show();
-                }
-                else if (currentUIState == shownGraphState.sproutedToUnsprouted)
-                {
-                    femaleToMale.Hide();
-                    populationLineGraph.Hide();
-                    sproutedToUnsprouted.Show();
-                    traits.Hide();
-                }
-                else if (currentUIState == shownGraphState.none)
-                {
-                    femaleToMale.Hide();
-                    populationLineGraph.Hide();
-                    sproutedToUnsprouted.Hide();
-                    traits.Hide();
-                }
-                List<IBrush> colors = [Brushes.Red, Brushes.Green];
-                populationLineGraph.drawLineGraph(new List<List<double>> { ecosystem.populationSizes, ecosystem.foodSizes }, colors, new List<string> { "Population Size", "Food Population" });
-                List<IBrush> colors2 = [Brushes.Red, Brushes.Black];
-                femaleToMale.drawLineGraph(new List<List<double>> { ecosystem.femaleSpecies, ecosystem.maleSpecies }, colors2, new List<string> { "Female", "Male" });
-                List<IBrush> colors3 = [Brushes.Green, Brushes.Brown];
-                sproutedToUnsprouted.drawLineGraph(new List<List<double>> { ecosystem.sproutedPlants, ecosystem.unSproutedPlants }, colors3, new List<string> { "Sprouted", "UnSprouted" });
-                List<IBrush> colors4 = [Brushes.Green, Brushes.Blue, Brushes.Red];
-                List<double> averageEyeSightSmaller = new();
-                foreach (double sight in ecosystem.averageEyeSight)
-                {
-                    averageEyeSightSmaller.Add(sight / 10);
-                }
-                traits.drawLineGraph(new List<List<double>> { averageEyeSightSmaller, ecosystem.averageReproductionAge, ecosystem.averageSpeedPrey }, colors4, new List<string> { "Eye Sight", "Reproduction", "Speed" });
-                if (simulationProgressBarVisible)
-                {
-                    progress.update(ecosystem.simulationSteps, max_simulation_steps);
-                }
-                await Task.Delay(100);
-            }
-        }
-        public partial class progressBar : Window
-        {
-            public Canvas GraphCanvas;
-            public Rectangle progressRect = new();
-            public Rectangle progressRectUnfilled = new();
-            public TextBlock stepsText = new();
-            public Button startButton;
-            public TextBlock stepsText1 = new();
-            public TextBlock stepsText2 = new();
-            public progressBar(string name)
-            {
-                Width = 650;
-                Height = 225;
-                Title = name;
-
-                GraphCanvas = new Canvas { Background = Brushes.White };
-                Content = GraphCanvas;
-            }
-            public void update(int amount, int goal)
-            {
-                if (progressRect != null)
-                {
-                    progressRect.Width = 490 * ((double)amount / goal);
-                    progressRect.InvalidateMeasure();
-                }
-                if (progressRectUnfilled != null)
-                {
-                    progressRectUnfilled.Width = 490 - (490 * ((double)amount / goal));
-                    Canvas.SetLeft(progressRectUnfilled, 5 + (490 * ((double)amount / goal)));
-                    progressRectUnfilled.InvalidateMeasure();
-                }
-                if (stepsText != null)
-                {
-                    var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow as MainWindow;
-
-                    if (mainWindow != null)
-                    {
-                        stepsText.Text = mainWindow.ecosystem.simulationSteps.ToString() + "/" + mainWindow.max_simulation_steps.ToString();
-                    }
-                }
-
-                var mainWindw = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow as MainWindow;
-
-                if (mainWindw != null && startButton != null)
-                {
-                    if (startButton.Content.ToString() != "UnPause Simulation" && mainWindw.running && mainWindw.paused)
-                    {
-                        startButton.Content = "UnPause Simulation";
-                    }
-                    else if (startButton.Content.ToString() != "Pause Simulation" && mainWindw.running && !mainWindw.paused)
-                    {
-                        startButton.Content = "Pause Simulation";
-                    }
-                }
-
-                GraphCanvas.InvalidateArrange();
-                GraphCanvas.InvalidateVisual(); // fix bug were ui rects arent changing size
-            }
-            public void drawProgressBar(int amount, int goal)
-            {
-                GraphCanvas.Children.Clear();
-
-                progressRect = new Rectangle()
-                {
-                    Width = 490 * ((double)amount / goal),
-                    Height = 50,
-                    Fill = Brushes.Green
-                };
-
-                Canvas.SetLeft(progressRect, 5);
-                Canvas.SetBottom(progressRect, 5);
-
-                GraphCanvas.Children.Add(progressRect);
-
-                progressRectUnfilled = new Rectangle()
-                {
-                    Width = 490 - (490 * (amount / goal)),
-                    Height = 50,
-                    Fill = Brushes.Blue
-                };
-
-                Canvas.SetLeft(progressRectUnfilled, 5 + (490 * ((double)amount / goal)));
-                Canvas.SetBottom(progressRectUnfilled, 5);
-
-                GraphCanvas.Children.Add(progressRectUnfilled);
-
-                startButton = new Button()
-                {
-                    Width = 490,
-                    Height = 30,
-                    Content = "Start Simulation"
-                };
-
-                Canvas.SetLeft(startButton, 5);
-                Canvas.SetBottom(startButton, 5 + 50 + 5);
-
-                var mainWindw = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow as MainWindow;
-                if (mainWindw != null)
-                {
-                    if (mainWindw.running && !mainWindw.paused)
-                    {
-                        startButton.Content = "Pause Simulation";
-                    }
-                    else if (mainWindw.running && mainWindw.paused)
-                    {
-                        startButton.Content = "UnPause Simulation";
-                    }
-                }
-
-                startButton.Click += (s, e) =>
-                {
-                    var mainWindw = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow as MainWindow;
-                    if (mainWindw != null)
-                    {
-                        if (mainWindw.running)
-                        {
-                            mainWindw.paused = !mainWindw.paused;  // Crashing happens here
-                        }
-                        else
-                        {
-                            mainWindw.RunLoopCaller();
-                        }
-                    }
-                };
-
-                GraphCanvas.Children.Add(startButton);
-
-                var startButton1 = new Button()
-                {
-                    Width = 100,
-                    Height = 30,
-                    Content = "-100 Step"
-                };
-
-                Canvas.SetLeft(startButton1, 5);
-                Canvas.SetBottom(startButton1, 5 + 50 + 5 + 30 + 5);
-
-                startButton1.Click += (s, e) =>
-                {
-                    var mainWindw = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow as MainWindow;
-                    if (mainWindw != null)
-                    {
-                        mainWindw.updateSimulationSteps(-1);
-                    }
-                };
-
-                GraphCanvas.Children.Add(startButton1);
-
-                var startButton2 = new Button()
-                {
-                    Width = 100,
-                    Height = 30,
-                    Content = "+100 Step"
-                };
-
-                Canvas.SetLeft(startButton2, 5 + 100 + 5 + 200 + 5);
-                Canvas.SetBottom(startButton2, 5 + 50 + 5 + 30 + 5);
-
-                startButton2.Click += (s, e) =>
-                {
-                    var mainWindw = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow as MainWindow;
-                    if (mainWindw != null)
-                    {
-                        mainWindw.updateSimulationSteps(1);
-                    }
-                };
-
-                GraphCanvas.Children.Add(startButton2);
-
-                var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow as MainWindow;
-
-                stepsText = new TextBlock()
-                {
-                    Width = 200,
-                    Height = 30,
-                    TextAlignment = TextAlignment.Center,
-                    Text = "Main Window Not Found"
-                };
-
-                Canvas.SetLeft(stepsText, 5 + 100 + 5);
-                Canvas.SetBottom(stepsText, 5 + 50 + 5 + 30 + 5);
-
-                if (mainWindow != null)
-                {
-                    stepsText.Text = mainWindow.max_simulation_steps.ToString();
-                }
-
-                GraphCanvas.Children.Add(stepsText);
-
-                var dropdownForGraphs = new ComboBox()
-                {
-                    Width = 200,
-                    Height = 30,
-                    ItemsSource = new List<string>
-                    {
-                        "Population",
-                        "Female vs Male",
-                        "Sprouted vs Unsprouted",
-                        "Traits",
-                        "None"
-                    },
-                    SelectedIndex = 4
-                };
-
-                Canvas.SetLeft(dropdownForGraphs, 5 + 200 + 5 + 205 + 5);
-                Canvas.SetBottom(dropdownForGraphs, 5 + 50 + 5 + 30 + 5);
-
-                dropdownForGraphs.SelectionChanged += (s, e) =>
-                {
-                    var mainWindow = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow as MainWindow;
-                    if (mainWindow != null)
-                    {
-                        switch (dropdownForGraphs.SelectedItem.ToString())
-                        {
-                            case "Population":
-                                mainWindow.currentUIState = MainWindow.shownGraphState.population;
-                                break;
-                            case "Female vs Male":
-                                mainWindow.currentUIState = MainWindow.shownGraphState.femaleToMale;
-                                break;
-                            case "Sprouted vs Unsprouted":
-                                mainWindow.currentUIState = MainWindow.shownGraphState.sproutedToUnsprouted;
-                                break;
-                            case "Traits":
-                                mainWindow.currentUIState = MainWindow.shownGraphState.traits;
-                                break;
-                            default:
-                                mainWindow.currentUIState = MainWindow.shownGraphState.none;
-                                break;
-                        }
-                    }
-                };
-
-                GraphCanvas.Children.Add(dropdownForGraphs);
-
-                var startButton3 = new Button()
-                {
-                    Width = 100,
-                    Height = 30,
-                    Content = "-1 species"
-                };
-
-                Canvas.SetLeft(startButton3, 5);
-                Canvas.SetBottom(startButton3, 5 + 50 + 5 + 30 + 5 + 30 + 5);
-
-                startButton3.Click += (s, e) =>
-                {
-                    var mainWindw = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow as MainWindow;
-                    if (mainWindw != null)
-                    {
-                        mainWindw.amountOfSpawnedSpecies--;
-                        mainWindw.updateProgressBar();
-                    }
-                };
-
-                GraphCanvas.Children.Add(startButton3);
-
-                var startButton4 = new Button()
-                {
-                    Width = 100,
-                    Height = 30,
-                    Content = "+1 species"
-                };
-
-                Canvas.SetLeft(startButton4, 5 + 100 + 5 + 200 + 5);
-                Canvas.SetBottom(startButton4, 5 + 50 + 5 + 30 + 5 + 30 + 5);
-
-                startButton4.Click += (s, e) =>
-                {
-                    var mainWindw = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow as MainWindow;
-                    if (mainWindw != null)
-                    {
-                        mainWindw.amountOfSpawnedSpecies++;
-                        mainWindw.updateProgressBar();
-                    }
-                };
-
-                GraphCanvas.Children.Add(startButton4);
-
-                stepsText1 = new TextBlock()
-                {
-                    Width = 200,
-                    Height = 30,
-                    TextAlignment = TextAlignment.Center,
-                    Text = "Main Window Not Found"
-                };
-
-                Canvas.SetLeft(stepsText1, 5 + 100 + 5);
-                Canvas.SetBottom(stepsText1, 5 + 50 + 5 + 30 + 5 + 30 + 5);
-
-                if (mainWindow != null)
-                {
-                    stepsText1.Text = mainWindow.amountOfSpawnedSpecies.ToString();
-                }
-
-                GraphCanvas.Children.Add(stepsText1);
-
-                // ---------- Food
-
-                var startButton7 = new Button()
-                {
-                    Width = 100,
-                    Height = 30,
-                    Content = "-1 food"
-                };
-
-                Canvas.SetLeft(startButton7, 5);
-                Canvas.SetBottom(startButton7, 5 + 50 + 5 + 30 + 5 + 30 + 5 + 30 + 5);
-
-                startButton7.Click += (s, e) =>
-                {
-                    var mainWindw = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow as MainWindow;
-                    if (mainWindw != null)
-                    {
-                        mainWindw.amountOfSpawnedFood--;
-                        mainWindw.updateProgressBar();
-                    }
-                };
-
-                GraphCanvas.Children.Add(startButton7);
-
-                var startButton8 = new Button()
-                {
-                    Width = 100,
-                    Height = 30,
-                    Content = "+1 food"
-                };
-
-                Canvas.SetLeft(startButton8, 5 + 100 + 5 + 200 + 5);
-                Canvas.SetBottom(startButton8, 5 + 50 + 5 + 30 + 5 + 30 + 5 + 30 + 5);
-
-                startButton8.Click += (s, e) =>
-                {
-                    var mainWindw = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow as MainWindow;
-                    if (mainWindw != null)
-                    {
-                        mainWindw.amountOfSpawnedFood++;
-                        mainWindw.updateProgressBar();
-                    }
-                };
-
-                GraphCanvas.Children.Add(startButton8);
-
-                var stepsText2 = new TextBlock()
-                {
-                    Width = 200,
-                    Height = 30,
-                    TextAlignment = TextAlignment.Center,
-                    Text = "Main Window Not Found"
-                };
-
-                Canvas.SetLeft(stepsText2, 5 + 100 + 5);
-                Canvas.SetBottom(stepsText2, 5 + 50 + 5 + 30 + 5 + 30 + 5 + 30 + 5);
-
-                if (mainWindow != null)
-                {
-                    stepsText2.Text = mainWindow.amountOfSpawnedFood.ToString();
-                }
-
-                GraphCanvas.Children.Add(stepsText2);
-
-                // --- predators
-
-                var startButton9 = new Button()
-                {
-                    Width = 100,
-                    Height = 30,
-                    Content = "-1 pred species"
-                };
-
-                Canvas.SetLeft(startButton9, 5);
-                Canvas.SetBottom(startButton9, 5 + 50 + 5 + 30 + 5 + 30 + 5 + 30 + 5 + 30 + 5);
-
-                startButton9.Click += (s, e) =>
-                {
-                    var mainWindw = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow as MainWindow;
-                    if (mainWindw != null)
-                    {
-                        mainWindw.amountOfSpawnedSpeciesPredator--;
-                        mainWindw.updateProgressBar();
-                    }
-                };
-
-                GraphCanvas.Children.Add(startButton9);
-
-                var startButton10 = new Button()
-                {
-                    Width = 100,
-                    Height = 30,
-                    Content = "+1 pred species"
-                };
-
-                Canvas.SetLeft(startButton10, 5 + 100 + 5 + 200 + 5);
-                Canvas.SetBottom(startButton10, 5 + 50 + 5 + 30 + 5 + 30 + 5 + 30 + 5 + 30 + 5);
-
-                startButton10.Click += (s, e) =>
-                {
-                    var mainWindw = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow as MainWindow;
-                    if (mainWindw != null)
-                    {
-                        mainWindw.amountOfSpawnedSpeciesPredator++;
-                        mainWindw.updateProgressBar();
-                    }
-                };
-
-                GraphCanvas.Children.Add(startButton10);
-
-                var stepsText3 = new TextBlock()
-                {
-                    Width = 200,
-                    Height = 30,
-                    TextAlignment = TextAlignment.Center,
-                    Text = "Main Window Not Found"
-                };
-
-                Canvas.SetLeft(stepsText3, 5 + 100 + 5);
-                Canvas.SetBottom(stepsText3, 5 + 50 + 5 + 30 + 5 + 30 + 5 + 30 + 5 + 30 + 5);
-
-                if (mainWindow != null)
-                {
-                    stepsText3.Text = mainWindow.amountOfSpawnedSpeciesPredator.ToString();
-                }
-
-                GraphCanvas.Children.Add(stepsText3);
-            }
-        }
-        public partial class LineGraphWindow : Window
-        {
-            public Canvas GraphCanvas;
-            public LineGraphWindow(string name)
-            {
-                Width = 500;
-                Height = 300;
-                Title = name;
-
-                GraphCanvas = new Canvas { Background = Brushes.White };
-                Content = GraphCanvas;
-            }
-
-            public void drawLineGraph(List<List<double>> datas, List<IBrush> colors, List<string> names)
-            {
-                GraphCanvas.Children.Clear();
-
-                double yMax = datas.SelectMany(d => d).DefaultIfEmpty(1).Max();
-                yMax *= 1.1;
-
-                for (int j = 0; j < datas.Count; j++)
-                {
-                    List<double> data = datas[j];
-                    var color = colors[j];
-
-                    double width = GraphCanvas.Bounds.Width;
-                    double height = GraphCanvas.Bounds.Height;
-                    double xStep = width / (data.Count - 1);
-                    double yScale = height / yMax;
-
-                    var Polyline = new Polyline
-                    {
-                        Stroke = color,
-                        StrokeThickness = 2
-                    };
-
-                    for (int i = 0; i < data.Count; i++)
-                    {
-                        double x = i * xStep;
-                        double y = height - (data[i] * yScale);
-                        Polyline.Points.Add(new Avalonia.Point(x, y));
-                    }
-
-                    GraphCanvas.Children.Add(Polyline);
-                }
-
-                double legendX = 10;
-                double legendY = 10;
-                double legendSpacing = 20;
-
-                for (int h = 0; h < datas.Count; h++)
-                {
-                    var rect = new Rectangle()
-                    {
-                        Width = 15,
-                        Height = 15,
-                        Fill = colors[h]
-                    };
-                    Canvas.SetLeft(rect, legendX);
-                    Canvas.SetTop(rect, legendY + h * legendSpacing);
-                    GraphCanvas.Children.Add(rect);
-
-                    string labelText = names[h];
-                    var text = new TextBlock
-                    {
-                        Text = labelText,
-                        Foreground = Brushes.Black,
-                        FontSize = 14
-                    };
-                    Canvas.SetLeft(text, legendX + 20);
-                    Canvas.SetTop(text, legendY + h * legendSpacing - 2);
-                    GraphCanvas.Children.Add(text);
-                }
-            }
+                Text = names[i],
+                FontSize = 12,
+                Foreground = Brushes.Black
+            };
+            Canvas.SetLeft(text, 32);
+            Canvas.SetTop(text, 10 + i * 18);
+            _graphCanvas.Children.Add(text);
         }
     }
 }

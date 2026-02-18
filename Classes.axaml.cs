@@ -65,7 +65,6 @@ namespace EcosystemSim
         public Species(string genesMother, string genesFather, float posX, float posY) { genesList[0] = genesMother; genesList[1] = genesFather; xPos = posX; yPos = posY; }
         public void inherit_genes()
         {
-            Random random = new Random();
             genes = "";
             string newGenes = "";
             string[] motherSplitGenes = genesList[0].Split(':');
@@ -81,14 +80,14 @@ namespace EcosystemSim
                 int geneMotherNum = int.Parse(motherSplitGenes[i]);
                 int geneFatherNum = int.Parse(fatherSplitGenes[i]);
                 int averageGene = (geneMotherNum + geneFatherNum) / 2;
-                averageGene += random.Next(-1, 2);
+                averageGene += Random.Shared.Next(-1, 2);
                 if (averageGene <= 0)
                 {
                     averageGene = 1;
                 }
                 if (i == 2)
                 {
-                    newGenes += random.Next(0, 2) + ":";
+                    newGenes += Random.Shared.Next(0, 2) + ":";
                     continue;
                 }
                 if (i == motherSplitGenes.Length - 3)

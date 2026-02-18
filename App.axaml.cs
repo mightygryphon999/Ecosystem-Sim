@@ -1,132 +1,166 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
+using System.Linq;
 using System.Numerics;
+using System.Text.Json;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using Avalonia.Media;
-using System.IO;
-using System.Text.Json;
-using System.Threading.Tasks;
-using System.Text.Json.Serialization;
-using System.Linq;
 
-namespace EcosystemSim
+namespace EcosystemSim;
+
+public partial class App : Application
 {
-    public partial class App : Application
+    public override void Initialize()
     {
-        public override void Initialize()
-        {
-            AvaloniaXamlLoader.Load(this);
-        }
-        public override void OnFrameworkInitializationCompleted()
-        {
-            if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
-            {
-                desktop.MainWindow = new MainWindow();
-            }
-            base.OnFrameworkInitializationCompleted();
-        }
+        AvaloniaXamlLoader.Load(this);
     }
-    public class EcosystemView : Control
+
+    public override void OnFrameworkInitializationCompleted()
     {
-        public Ecosystem EcosystemData { get; set; }
-        public float size = 5f;
-        bool simulationUIvisible = true;
-
-        public override void Render(DrawingContext context)
+        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            if (!simulationUIvisible){ return; }
-            base.Render(context);
-            if (EcosystemData == null) Debug.WriteLine("Ecosystem Data is null");
+            desktop.MainWindow = new MainWindow();
+        }
 
+        base.OnFrameworkInitializationCompleted();
+    }
+}
+
+public class EcosystemView : Control
+{
+    public Ecosystem? EcosystemData { get; set; }
+    public float size = 5f;
+    public bool simulationUIvisible = true;
+
+    public override void Render(DrawingContext context)
+    {
+        if (!simulationUIvisible)
+        {
+            return;
+        }
+
+        base.Render(context);
+
+        if (EcosystemData is null)
+        {
+            Debug.WriteLine("Ecosystem Data is null");
+            return;
+        }
+
+        lock (EcosystemData.SyncRoot)
+        {
             foreach (var water in EcosystemData.activeWater)
             {
-                var brush = water.amountOfWater == 0 ? Brushes.Transparent : water.amountOfWater >= 0 && water.amountOfWater <= 25 ? Brushes.LightBlue : water.amountOfWater >= 26 && water.amountOfWater <= 75 ? Brushes.Blue : Brushes.DarkBlue;
-                var pen = new Pen(Brushes.Transparent, 1);
+                var brush = water.amountOfWater == 0
+                    ? Brushes.Transparent
+                    : water.amountOfWater <= 25
+                        ? Brushes.LightBlue
+                        : water.amountOfWater <= 75
+                            ? Brushes.DodgerBlue
+                            : Brushes.DarkBlue;
+
                 var center = new Point(water.xPos, water.yPos);
-                context.DrawEllipse(brush, pen, center, size, size);
+                context.DrawEllipse(brush, null, center, size, size);
             }
 
             foreach (var food in EcosystemData.activeFood)
             {
-                var brush = food.age >= food.sproutingAge ? Brushes.Green : Brushes.Brown;
-                var pen = new Pen(Brushes.Transparent, 1);
+                bool sprouted = food.age >= food.sproutingAge;
+                var brush = sprouted ? Brushes.ForestGreen : Brushes.SaddleBrown;
                 var center = new Point(food.xPos, food.yPos);
-                context.DrawEllipse(brush, pen, center, size - (food.age >= food.sproutingAge ? 0f : 1f), size - (food.age >= food.sproutingAge ? 0 : 1));
+                context.DrawEllipse(brush, null, center, size - (sprouted ? 0f : 1f), size - (sprouted ? 0f : 1f));
             }
 
             foreach (var species in EcosystemData.activeSpecies)
             {
                 var brush = species.predator ? Brushes.Red : Brushes.Black;
-                var pen = new Pen(Brushes.Transparent, 1);
                 var center = new Point(species.xPos, species.yPos);
-                context.DrawEllipse(brush, pen, center, size, size);
+                context.DrawEllipse(brush, null, center, size, size);
             }
-        }
-        public void Refresh()
-        {
-            InvalidateVisual();
         }
     }
 
-    public class Ecosystem
+    public void Refresh()
     {
-        static Random random = new Random();
-        static string start_time = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-        public List<Species> activeSpecies { get; set; } = new();
-        public List<FoodSpecies> activeFood { get; set; } = new();
-        public List<WaterZone> activeWater { get; set; } = new();
-        public List<double> populationSizes = new();
-        public List<double> foodSizes = new();
-        public List<double> maleSpecies = new();
-        public List<double> femaleSpecies = new();
-        public List<double> sproutedPlants = new();
-        public List<double> unSproutedPlants = new();
-        public List<double> averageSpeedPrey = new();
-        public List<double> averageReproductionAge = new();
-        public List<double> averageEyeSight = new();
-        public bool noRecording = true;
-        public int simulationSteps = 0;
-        public Task foodUpdateTask = null;
+        InvalidateVisual();
+    }
+}
 
-        public void start()
-        {
-            Directory.CreateDirectory("saves/" + start_time);
-        }
-        public void update()
+public class Ecosystem
+{
+    private static readonly string start_time = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+
+    public readonly object SyncRoot = new();
+
+    public List<Species> activeSpecies { get; set; } = new();
+    public List<FoodSpecies> activeFood { get; set; } = new();
+    public List<WaterZone> activeWater { get; set; } = new();
+
+    public List<double> populationSizes = new();
+    public List<double> foodSizes = new();
+    public List<double> maleSpecies = new();
+    public List<double> femaleSpecies = new();
+    public List<double> sproutedPlants = new();
+    public List<double> unSproutedPlants = new();
+    public List<double> averageSpeedPrey = new();
+    public List<double> averageReproductionAge = new();
+    public List<double> averageEyeSight = new();
+
+    public bool noRecording = true;
+    public bool EnableDiagnostics { get; set; }
+    public int simulationSteps;
+
+    public void start()
+    {
+        Directory.CreateDirectory($"saves/{start_time}");
+    }
+
+    public void update()
+    {
+        UpdateTick();
+    }
+
+    public void UpdateTick()
+    {
+        lock (SyncRoot)
         {
             simulationSteps++;
             maleSpecies.Add(0);
             femaleSpecies.Add(0);
-            List<double> speed = new();
-            List<double> eyeSisht = new();
-            List<double> reproductionAge = new();
-            Console.WriteLine("==========Update==========");
-            if (foodUpdateTask == null || foodUpdateTask.IsCompleted)
-            {
-                foodUpdateTask = updateFoodAsync();
-            }
+
+            var speed = new List<double>(activeSpecies.Count);
+            var eyeSight = new List<double>(activeSpecies.Count);
+            var reproductionAge = new List<double>(activeSpecies.Count);
+
+            Log("==========Update==========");
+
+            UpdateFoodInternal();
+
             for (int i = activeSpecies.Count - 1; i >= 0; i--)
             {
                 Species species = activeSpecies[i];
                 speed.Add(species.speed);
-                eyeSisht.Add(species.eyeSght);
+                eyeSight.Add(species.eyeSght);
                 reproductionAge.Add(species.reproductiveAge);
+
                 if (species.gender == 0)
                 {
-                    femaleSpecies[femaleSpecies.Count - 1] += 1;
+                    femaleSpecies[^1] += 1;
                 }
                 else
                 {
-                    maleSpecies[maleSpecies.Count - 1] += 1;
+                    maleSpecies[^1] += 1;
                 }
-                Console.WriteLine($"Species num:{i} is age: {species.age}");
+
                 species.update();
+
                 int wanted = species.wanted_resource();
-                if (species.wanted_resource() == 0)
+                if (wanted == 0)
                 {
                     bool worked = goToWater(species);
                     if (!worked)
@@ -141,7 +175,7 @@ namespace EcosystemSim
                         }
                     }
                 }
-                else if (species.wanted_resource() == 1)
+                else if (wanted == 1)
                 {
                     if (species.predator)
                     {
@@ -152,7 +186,7 @@ namespace EcosystemSim
                         goToFood(species);
                     }
                 }
-                else if (species.wanted_resource() == 2)
+                else if (wanted == 2)
                 {
                     int worked = goToSpecies(species);
                     if (worked == 0)
@@ -167,393 +201,282 @@ namespace EcosystemSim
                         }
                     }
                 }
-                else if (species.wanted_resource() == -1)
+                else
                 {
                     species.currentState = Species.State.nothing;
                 }
+
                 if (species.check_death())
                 {
                     activeSpecies.RemoveAt(i);
                 }
             }
 
-            if (speed.Count > 0)
-            {
-                averageSpeedPrey.Add(speed.Average());
-            }
-            else
-            {
-                averageSpeedPrey.Add(0);// finish adding this to the rest of these adds
-            }
-
-            if (eyeSisht.Count > 0)
-            {
-                averageEyeSight.Add(eyeSisht.Average());
-            }
-            else
-            {
-                averageEyeSight.Add(0);
-            }
-
-            if (reproductionAge.Count > 0)
-            {
-                averageReproductionAge.Add(reproductionAge.Average());
-            }
-            else
-            {
-                averageReproductionAge.Add(0);
-            }
+            averageSpeedPrey.Add(speed.Count > 0 ? speed.Average() : 0);
+            averageEyeSight.Add(eyeSight.Count > 0 ? eyeSight.Average() : 0);
+            averageReproductionAge.Add(reproductionAge.Count > 0 ? reproductionAge.Average() : 0);
 
             populationSizes.Add(activeSpecies.Count);
             foodSizes.Add(activeFood.Count);
+
             foreach (var water in activeWater)
             {
                 water.amountOfWater += 1f;
             }
-            for (int i = activeFood.Count - 1; i >= 0; i--)
+
+            activeFood.RemoveAll(f => f.age >= f.maxLife);
+
+            if (!noRecording)
             {
-                if (activeFood[i].age >= activeFood[i].maxLife)
-                {
-                    activeFood.RemoveAt(i);
-                }
+                saveToJson();
             }
-            //update_text();
-            if (!noRecording) { saveToJson(); }
         }
-        public async Task updateFoodAsync()
+    }
+
+    private void UpdateFoodInternal()
+    {
+        sproutedPlants.Add(0);
+        unSproutedPlants.Add(0);
+
+        var localFood = new List<FoodSpecies>(activeFood);
+        var newFoods = new List<FoodSpecies>();
+
+        foreach (var food in localFood)
         {
-            var localFood = new List<FoodSpecies>(activeFood);
-            List<FoodSpecies> newFoods = new();
-            sproutedPlants.Add(0);
-            unSproutedPlants.Add(0);
-            foreach (var food in localFood)
+            food.age += 1f;
+            if (food.age >= food.seedingAge)
             {
-                food.age += 1f;
-                if (food.age >= food.seedingAge)
+                food.seedingAge += food.originalSeedingAge;
+                int spawnCount = food.amountOfFood + 1;
+
+                for (int i = 0; i < spawnCount; i++)
                 {
-                    food.seedingAge += food.originalSeedingAge;
-                    int spawnCount = food.amountOfFood + 1;
-                    for (int i = 0; i < spawnCount; i++)
+                    bool validPosition;
+                    int attempts = 0;
+                    FoodSpecies? candidate = null;
+
+                    do
                     {
+                        float x = Math.Clamp(food.xPos + Random.Shared.Next(-150, 150), 0, 1600);
+                        float y = Math.Clamp(food.yPos + Random.Shared.Next(-150, 150), 0, 900);
 
-                        FoodSpecies newFood;
-
-                        bool validPosition = false;
-
-                        int attempts = 0;
-
-                        do
+                        candidate = new FoodSpecies(
+                            1,
+                            (int)x,
+                            (int)y,
+                            food.seedsAmount + Random.Shared.Next(-1, 2),
+                            food.sproutingAge + Random.Shared.Next(-1, 2),
+                            food.originalSeedingAge + Random.Shared.Next(-1, 2),
+                            food.maxLife + Random.Shared.Next(-1, 2))
                         {
-                            float x = Math.Clamp(food.xPos + random.Next(-150, 150), 0, 1600);
-                            float y = Math.Clamp(food.yPos + random.Next(-150, 150), 0, 900);
-                            newFood = new FoodSpecies(1, (int)x, (int)y, food.seedsAmount + random.Next(-1, 2), food.sproutingAge + random.Next(-1, 2), food.originalSeedingAge + random.Next(-1, 2), food.maxLife + random.Next(-1, 2));
-                            newFood.seedingAge = newFood.originalSeedingAge;
+                            seedingAge = food.originalSeedingAge
+                        };
 
-                            validPosition = true;
-                            foreach (var existing in localFood)
+                        validPosition = true;
+
+                        foreach (var existing in localFood)
+                        {
+                            if (Vector2.Distance(new Vector2(existing.xPos, existing.yPos), new Vector2(x, y)) <= 20)
                             {
-                                if (Vector2.Distance(new Vector2(existing.xPos, existing.yPos), new Vector2(x, y)) <= 20)
-                                {
-                                    validPosition = false;
-                                    break;
-                                }
+                                validPosition = false;
+                                break;
                             }
-                            foreach (var existing in activeWater)
-                            {
-                                if (Vector2.Distance(new Vector2(existing.xPos, existing.yPos), new Vector2(x, y)) <= 30)
-                                {
-                                    validPosition = false;
-                                    break;
-                                }
-                            }
-                            attempts++;
                         }
-                        while (!validPosition && attempts < 20);
 
                         if (validPosition)
                         {
-                            newFoods.Add(newFood);
+                            foreach (var existingWater in activeWater)
+                            {
+                                if (Vector2.Distance(new Vector2(existingWater.xPos, existingWater.yPos), new Vector2(x, y)) <= 30)
+                                {
+                                    validPosition = false;
+                                    break;
+                                }
+                            }
                         }
+
+                        attempts++;
                     }
-                }
-                if (food.age >= food.sproutingAge)
-                {
-                    sproutedPlants[sproutedPlants.Count - 1] += 1;
-                }
-                else
-                {
-                    unSproutedPlants[unSproutedPlants.Count - 1] += 1;
-                }
-            }
-            await Avalonia.Threading.Dispatcher.UIThread.InvokeAsync(() =>
-            {
-                lock (activeFood)
-                {
-                    foreach (var food1 in newFoods)
+                    while (!validPosition && attempts < 20);
+
+                    if (validPosition && candidate is not null)
                     {
-                        activeFood.Add(food1);
+                        newFoods.Add(candidate);
                     }
-                    activeFood.RemoveAll(f => f.age >= f.maxLife);
                 }
-            });
-        }
-        public void saveToJson(string filename = "")
-        {
-            Console.WriteLine("Saving to json called");
-
-            try
-            {
-                Console.WriteLine("Saving to json file");
-                var options = new JsonSerializerOptions
-                {
-                    WriteIndented = true,
-                    IncludeFields = true
-                };
-
-                if (string.IsNullOrEmpty(filename))
-                {
-                    string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-                    filename = $"saves/{start_time}/date_{timestamp}.json";
-                }
-
-                string json = JsonSerializer.Serialize(this, options); // finish the json serialization code and such
-                File.WriteAllText(filename, json);
             }
-            catch (Exception ex)
+
+            if (food.age >= food.sproutingAge)
             {
-                Console.WriteLine("Error saving json: " + ex);
+                sproutedPlants[^1] += 1;
+            }
+            else
+            {
+                unSproutedPlants[^1] += 1;
             }
         }
-        public void update_text()
+
+        activeFood.AddRange(newFoods);
+        activeFood.RemoveAll(f => f.age >= f.maxLife);
+    }
+
+    private void Log(string message)
+    {
+        if (EnableDiagnostics)
         {
-            List<string> text = new List<string>();
-
-            text.Add("=====UPDATE=====");
-
-            for (int i = 0; i < activeSpecies.Count; i++)
-            {
-                Species species = activeSpecies[i];
-                text.Add($"current species {i} hunger:{species.hunger}  thirst:{species.thirst}   urge to reproduce{species.reproductiveUrge}  age to reproduce:{species.reproductiveAge}  genes:{species.genes}   xPos:{species.xPos}   yPos:{species.yPos}   state:{species.currentState}   eye Sight:{species.eyeSght}   gender:{species.gender}");
-            }
-
-            File.AppendAllLinesAsync("data.txt", text);
+            Console.WriteLine(message);
         }
-        public int goToSpeciesEat(Species species)
+    }
+
+    public void saveToJson(string filename = "")
+    {
+        try
         {
-            Species species1 = FindClosestOfTypeSpeciesPredators(species);
-
-            if (species1 == null)
+            var options = new JsonSerializerOptions
             {
-                double radius = 100.0;
+                WriteIndented = true,
+                IncludeFields = true
+            };
 
-                (double x, double y) = RandomPointInCircle(radius, new Vector2(species.xPos, species.yPos));
-
-                Vector2 currentPosX = new Vector2(species.xPos, species.yPos);
-                Vector2 targetPosX = new Vector2((float)x, (float)y);
-
-                species.move_species(targetPosX, false);
-
-                return 0;
+            if (string.IsNullOrEmpty(filename))
+            {
+                string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+                filename = $"saves/{start_time}/date_{timestamp}.json";
             }
 
-            Vector2 currentPos = new Vector2(species.xPos, species.yPos);
-            Vector2 targetPos = new Vector2(species1.xPos, species1.yPos);
+            string json = JsonSerializer.Serialize(this, options);
+            File.WriteAllText(filename, json);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Error saving json: " + ex);
+        }
+    }
 
-            Vector2 escapeDirection = Vector2.Normalize(targetPos - currentPos);
-            Vector2 escapeTarget = new Vector2(species1.xPos + escapeDirection.X * 100, species1.yPos + escapeDirection.Y * 100);
+    public int goToSpeciesEat(Species species)
+    {
+        Species? species1 = FindClosestOfTypeSpeciesPredators(species);
+        if (species1 is null)
+        {
+            MoveRandom(species);
+            return 0;
+        }
+
+        Vector2 currentPos = new(species.xPos, species.yPos);
+        Vector2 targetPos = new(species1.xPos, species1.yPos);
+
+        Vector2 direction = targetPos - currentPos;
+        if (direction != Vector2.Zero)
+        {
+            Vector2 escapeDirection = Vector2.Normalize(direction);
+            Vector2 escapeTarget = new(species1.xPos + escapeDirection.X * 100, species1.yPos + escapeDirection.Y * 100);
             species1.move_species(escapeTarget, true);
-
-            bool collided = species.move_species(targetPos, true);
-
-            if (collided && species.gender == 0)
-            {
-                species.currentState = Species.State.eating;
-                activeSpecies.Remove(species1);
-                return 2;
-            }
-
-            return 1;
-            // x is cosin, y is sin
         }
-        public int goToSpecies(Species species)
+
+        bool collided = species.move_species(targetPos, true);
+        if (collided && species.gender == 0)
         {
-            Species species1 = FindClosestOfTypeSpecies(species);
-
-            if (species1 == null)
-            {
-                double radius = 100.0;
-
-                (double x, double y) = RandomPointInCircle(radius, new Vector2(species.xPos, species.yPos));
-
-                Vector2 currentPosX = new Vector2(species.xPos, species.yPos);
-                Vector2 targetPosX = new Vector2((float)x, (float)y);
-
-                species.move_species(targetPosX, false);
-
-                return 0;
-            }
-
-            Vector2 currentPos = new Vector2(species.xPos, species.yPos);
-            Vector2 targetPos = new Vector2(species1.xPos, species1.yPos);
-
-            bool collided = species.move_species(targetPos, false);
-
-            if (collided && species.gender == 0)
-            {
-                species.currentState = Species.State.nothing;
-                activeSpecies.Add(species.mate(species1));
-                return 2;
-            }
-
-            return 1;
-            // x is cosin, y is sin
+            species.currentState = Species.State.eating;
+            activeSpecies.Remove(species1);
+            return 2;
         }
-        public bool goToFood(Species species)
+
+        return 1;
+    }
+
+    public int goToSpecies(Species species)
+    {
+        Species? species1 = FindClosestOfTypeSpecies(species);
+        if (species1 is null)
         {
-            FoodSpecies food = FindClosestOfTypeFood(species);
-
-            if (food == null)
-            {
-                double radius = 100.0;
-
-                (double x, double y) = RandomPointInCircle(radius, new Vector2(species.xPos, species.yPos));
-
-                Vector2 currentPosX = new Vector2(species.xPos, species.yPos);
-                Vector2 targetPosX = new Vector2((float)x, (float)y);
-
-                species.move_species(targetPosX, false);
-
-                return false;
-            }
-
-            Vector2 currentPos = new Vector2(species.xPos, species.yPos);
-            Vector2 targetPos = new Vector2(food.xPos, food.yPos);
-
-            bool collided = species.move_species(targetPos, false);
-
-            if (collided)
-            {
-                species.currentState = Species.State.eating;
-
-                activeFood.Remove(food);
-            }
-
-            return true;
-            // x is cosin, y is sin
+            MoveRandom(species);
+            return 0;
         }
-        public bool goToWater(Species species)
+
+        Vector2 targetPos = new(species1.xPos, species1.yPos);
+        bool collided = species.move_species(targetPos, false);
+
+        if (collided && species.gender == 0)
         {
-            WaterZone water = FindClosestWaterZone(species);
-
-            if (water == null)
-            {
-                double radius = 100.0;
-
-                (double x, double y) = RandomPointInCircle(radius, new Vector2(species.xPos, species.yPos));
-
-                Vector2 currentPosX = new Vector2(species.xPos, species.yPos);
-                Vector2 targetPosX = new Vector2((float)x, (float)y);
-
-                species.move_species(targetPosX, false);
-
-                return false;
-            }
-
-            Vector2 currentPos = new Vector2(species.xPos, species.yPos);
-            Vector2 targetPos = new Vector2(water.xPos, water.yPos);
-
-            bool collided = species.move_species(targetPos, false);
-
-            if (collided)
-            {
-                species.currentState = Species.State.drinking;
-                species.drinkingWaterAmount = water.amountOfWater;
-                water.amountOfWater = 0;
-            }
-
-            return true;
-            // x is cosin, y is sin
+            species.currentState = Species.State.nothing;
+            activeSpecies.Add(species.mate(species1));
+            return 2;
         }
-        static (double, double) RandomPointInCircle(double radius, Vector2 offset)
+
+        return 1;
+    }
+
+    public bool goToFood(Species species)
+    {
+        FoodSpecies? food = FindClosestOfTypeFood(species);
+        if (food is null)
         {
-            double angle = random.NextDouble() * MathF.PI * 2;
-            double distance = Math.Sqrt(random.NextDouble()) * radius;
-
-            double x = Math.Cos(angle) * distance;
-            double y = Math.Sin(angle) * distance;
-
-            x += offset.X;
-            y += offset.Y;
-
-            return (x, y);
+            MoveRandom(species);
+            return false;
         }
-        public FoodSpecies FindClosestOfTypeFood(Species species)
+
+        Vector2 targetPos = new(food.xPos, food.yPos);
+        bool collided = species.move_species(targetPos, false);
+        if (collided)
         {
-            FoodSpecies result = new FoodSpecies(0, 0, 0, 1, 0, 0, 0);
+            species.currentState = Species.State.eating;
+            activeFood.Remove(food);
+        }
 
-            float closestDistance = 100000;
-            FoodSpecies returnClass = new FoodSpecies(0, 0, 0, 1, 0, 0, 0);
-            foreach (FoodSpecies food in activeFood)
-            {
-                float distance = Vector2.Distance(new Vector2(food.xPos, food.yPos), new Vector2(species.xPos, species.yPos));
-                if (distance < closestDistance && food.age >= food.sproutingAge)
-                {
-                    returnClass = food;
-                    closestDistance = distance;
-                }
-            }
-            if (closestDistance > species.eyeSght) { return null; }
-            return returnClass;
-        }
-        public Species FindClosestOfTypeSpecies(Species species)
-        {
-            float closestDistance = 100000;
-            Species returnClass = new Species("", "", 0, 0);
-            foreach (Species species1 in activeSpecies)
-            {
-                float distance = Vector2.Distance(new Vector2(species1.xPos, species1.yPos), new Vector2(species.xPos, species.yPos));
-                if (distance < closestDistance && species1.gender != species.gender && species.predator == species1.predator)
-                {
-                    returnClass = species1;
-                    closestDistance = distance;
-                }
-            }
-            if (closestDistance > species.eyeSght) { return null; }
-            return returnClass;
-        }
-        public Species FindClosestOfTypeSpeciesPredators(Species species)
-        {
-            float closestDistance = 100000;
-            Species returnClass = new Species("", "", 0, 0);
-            foreach (Species species1 in activeSpecies)
-            {
-                float distance = Vector2.Distance(new Vector2(species1.xPos, species1.yPos), new Vector2(species.xPos, species.yPos));
-                if (distance < closestDistance && species1.gender != species.gender)
-                {
-                    returnClass = species1;
-                    closestDistance = distance;
-                }
-            }
-            if (closestDistance > species.eyeSght) { return null; }
-            return returnClass;
-        }
-        public WaterZone FindClosestWaterZone(Species species)
-        {
-            WaterZone result = new WaterZone(0, 0, 0);
+        return true;
+    }
 
-            float closestDistance = 100000;
-            WaterZone returnClass = new WaterZone(0, 0, 0);
-            foreach (WaterZone water in activeWater)
-            {
-                float distance = Vector2.Distance(new Vector2(water.xPos, water.yPos), new Vector2(species.xPos, species.yPos));
-                if (distance < closestDistance && water.amountOfWater > 0)
-                {
-                    returnClass = water;
-                    closestDistance = distance;
-                }
-            }
-            if (closestDistance > species.eyeSght) { return null; }
-            return returnClass;
+    public bool goToWater(Species species)
+    {
+        WaterZone? water = FindClosestWaterZone(species);
+        if (water is null)
+        {
+            MoveRandom(species);
+            return false;
         }
+
+        Vector2 targetPos = new(water.xPos, water.yPos);
+        bool collided = species.move_species(targetPos, false);
+        if (collided)
+        {
+            species.currentState = Species.State.drinking;
+            species.drinkingWaterAmount = water.amountOfWater;
+            water.amountOfWater = 0;
+        }
+
+        return true;
+    }
+
+    private static void MoveRandom(Species species)
+    {
+        (double x, double y) = RandomPointInCircle(100.0, new Vector2(species.xPos, species.yPos));
+        species.move_species(new Vector2((float)x, (float)y), false);
+    }
+
+    private static (double x, double y) RandomPointInCircle(double radius, Vector2 offset)
+    {
+        double angle = Random.Shared.NextDouble() * MathF.PI * 2;
+        double distance = Math.Sqrt(Random.Shared.NextDouble()) * radius;
+        return (Math.Cos(angle) * distance + offset.X, Math.Sin(angle) * distance + offset.Y);
+    }
+
+    public FoodSpecies? FindClosestOfTypeFood(Species species)
+    {
+        return TargetingService.FindClosestFood(species, activeFood);
+    }
+
+    public Species? FindClosestOfTypeSpecies(Species species)
+    {
+        return TargetingService.FindClosestMate(species, activeSpecies);
+    }
+
+    public Species? FindClosestOfTypeSpeciesPredators(Species species)
+    {
+        return TargetingService.FindClosestPreyTarget(species, activeSpecies);
+    }
+
+    public WaterZone? FindClosestWaterZone(Species species)
+    {
+        return TargetingService.FindClosestWater(species, activeWater);
     }
 }
