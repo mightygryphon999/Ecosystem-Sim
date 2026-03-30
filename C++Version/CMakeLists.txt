@@ -1,6 +1,25 @@
-cmake_minimum_required(VERSION 4.2)
+cmake_minimum_required(VERSION 3.22)
 project(C__Version)
 
 set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_executable(C__Version src/main.cpp)
+add_executable(${PROJECT_NAME} src/main.cpp)
+
+set(SDL3_ROOT "/opt/homebrew/opt/sdl3")  # Change if brew prefix differs
+
+target_include_directories(${PROJECT_NAME} PRIVATE ${SDL3_ROOT}/include)
+
+target_link_libraries(${PROJECT_NAME} PRIVATE ${SDL3_ROOT}/lib/libSDL3.dylib)
+
+if(APPLE)
+    find_library(COCOA_LIBRARY Cocoa)
+    find_library(IOKIT_LIBRARY IOKit)
+    find_library(COREVIDEO_LIBRARY CoreVideo)
+    target_link_libraries(${PROJECT_NAME} PRIVATE ${COCOA_LIBRARY} ${IOKIT_LIBRARY} ${COREVIDEO_LIBRARY})
+endif()
+
+set_target_properties(${PROJECT_NAME} PROPERTIES
+        BUILD_WITH_INSTALL_RPATH TRUE
+        INSTALL_RPATH "${SDL3_ROOT}/lib"
+)
