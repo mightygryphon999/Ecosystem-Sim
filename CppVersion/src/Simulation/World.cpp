@@ -7,8 +7,6 @@
 #include "Chunk.h"
 
 namespace World {
-    ChunkData::Chunk chunks_map_main[10][10];
-
     int setup_chunks(ChunkData::Chunk (&chunks_map)[10][10]){
         int i = 0;
         int j = 0;

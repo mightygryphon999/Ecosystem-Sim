@@ -10,7 +10,7 @@
 #include <SDL3/SDL_render.h>
 
 constexpr int kScreenWidth{ 640 };
-constexpr int kScreenHeight{ 480 };
+constexpr int kScreenHeight{ 640 };
 
 namespace Renderer {
     // Global Variables
@@ -30,7 +30,7 @@ namespace Renderer {
                 SDL_Log("Window could not be created! SDL Error: %s", SDL_GetError());
             }
             else {
-                gScreenRenderer = SDL_CreateRenderer(gWindow,"main");
+                gScreenRenderer = SDL_CreateRenderer(gWindow,nullptr);
                 if (gScreenRenderer == nullptr) {
                     SDL_Log("Couldnt get the renderer or create it");
                     success = false;
@@ -43,20 +43,23 @@ namespace Renderer {
 
     bool loadMedia();
 
-    void present() {
-        SDL_GetRenderDrawColor(gScreenRenderer,reinterpret_cast<Uint8 *>(255),reinterpret_cast<Uint8 *>(255),reinterpret_cast<Uint8 *>(255),reinterpret_cast<Uint8 *>(255));
-        SDL_RenderClear(gScreenRenderer);
-        SDL_RenderPresent(gScreenRenderer);
-    }
-
     void present_chunk_grid() {
+        constexpr float kCellSize = 64.0f;
+
         for (int x = 0; x < 10; x++) {
             for (int y = 0; y < 10; y++) {
-                SDL_FRect rect {World::chunks_map_main[x][y].x, World::chunks_map_main[x][y].y, World::chunks_map_main[x][y].Cw, World::chunks_map_main[x][y].Cw};
-                SDL_SetRenderDrawColor(gScreenRenderer, 0, 0, 0, 255);
+                SDL_FRect rect {x * kCellSize, y * kCellSize, kCellSize, kCellSize};
+                SDL_SetRenderDrawColor(gScreenRenderer, 255, 255, 255, 255);
                 SDL_RenderRect(gScreenRenderer, &rect);
             }
         }
+    }
+
+    void present() {
+        SDL_SetRenderDrawColor(gScreenRenderer,0,0,0,255);
+        SDL_RenderClear(gScreenRenderer);
+        present_chunk_grid();
+        SDL_RenderPresent(gScreenRenderer);
     }
 
     void close() {
