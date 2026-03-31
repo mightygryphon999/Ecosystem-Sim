@@ -13,7 +13,7 @@ namespace World {
 
         for (i = 0; i < 10; i++) {
             for (j = 0; j < 10; j++) {
-                const ChunkData::Chunk c = {static_cast<float>(j),static_cast<float>(i),1};
+                const ChunkData::Chunk c = {static_cast<float>(j) * 64,static_cast<float>(i) * 64,64};
                 chunks_map[i][j] = c;
             }
         }
