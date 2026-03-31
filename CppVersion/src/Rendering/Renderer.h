@@ -9,7 +9,7 @@
 
 namespace Renderer {
     bool init();
-    void present(float mouseX, float mouseY);
+    void present(float mouseX, float mouseY, float mouseScrollY);
     void close();
 } // Renderer
 

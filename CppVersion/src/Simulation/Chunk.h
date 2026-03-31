@@ -4,6 +4,7 @@
 
 #ifndef C__VERSION_CHUNK_H
 #define C__VERSION_CHUNK_H
+#include "../Rendering/ChunkVisual.h"
 #include <unordered_map>
 #include <vector>
 
@@ -19,6 +20,7 @@ namespace ChunkData {
         float x,y;
         float Cw;
         std::unordered_map<int,chunk_list> cached_chunks;
+        ChunkVisual::ChunkVisual visuals;
 
         void _init(float y_pos, float x_pos, float width);
 

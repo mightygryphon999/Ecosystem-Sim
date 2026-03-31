@@ -8,6 +8,7 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include <SDL3/SDL_render.h>
+#include "Visualizers/ChunkNeighborsVisualizer.h"
 
 constexpr int kScreenWidth{ 640 };
 constexpr int kScreenHeight{ 640 };
@@ -43,22 +44,10 @@ namespace Renderer {
 
     bool loadMedia();
 
-    void present_chunk_grid() {
-        constexpr float kCellSize = 64.0f;
-
-        for (int x = 0; x < 10; x++) {
-            for (int y = 0; y < 10; y++) {
-                SDL_FRect rect {x * kCellSize, y * kCellSize, kCellSize, kCellSize};
-                SDL_SetRenderDrawColor(gScreenRenderer, 255, 255, 255, 255);
-                SDL_RenderRect(gScreenRenderer, &rect);
-            }
-        }
-    }
-
-    void present(float mouseX, float mouseY) {
+    void present(float mouseX, float mouseY, float mouseScrollY) {
         SDL_SetRenderDrawColor(gScreenRenderer,0,0,0,255);
         SDL_RenderClear(gScreenRenderer);
-        present_chunk_grid();
+        ChunkNeighborsVisualizer::present_chunk_neighbors_visualizer(gScreenRenderer, mouseX, mouseY, mouseScrollY);
         SDL_RenderPresent(gScreenRenderer);
     }
 

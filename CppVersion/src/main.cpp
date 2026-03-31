@@ -25,19 +25,28 @@ int main() {
         float mouseX{ 0.0f };
         float mouseY{ 0.0f };
 
+        float mouseScrollY{ 0.0f };
+
         while (quit == false) {
+            mouseScrollY = 0;
             while (SDL_PollEvent(&e) == true) {
                 switch (e.type) {
                     case SDL_EVENT_QUIT: {
                         quit = true;
+                        break;
                     }
                     case SDL_EVENT_MOUSE_MOTION: {
                         mouseX = e.motion.x;
                         mouseY = e.motion.y;
+                        break;
+                    }
+                    case SDL_EVENT_MOUSE_WHEEL: {
+                        mouseScrollY = e.wheel.y;
+                        break;
                     }
                 }
             }
-            Renderer::present(mouseX, mouseY);
+            Renderer::present(mouseX, mouseY, mouseScrollY);
         }
     }
 

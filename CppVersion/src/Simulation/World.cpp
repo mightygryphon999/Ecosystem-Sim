@@ -20,7 +20,12 @@ namespace World {
         return 1;
     }
 
-    int setup_cached_chunks(ChunkData::Chunk (&chunks_map)[10][10]){
+    int setup_cached_chunks(){
+        for (int x = 0; x < 10; x++) {
+            for (int y = 0; y < 10; y++) {
+                chunks_map_main[x][y]._setup_cached_chunks(250, 10, chunks_map_main);
+            }
+        }
         return 1;
     }
 
@@ -31,7 +36,11 @@ namespace World {
         if (!success) {
             return 1;
         }
-        //success = setup_cached_chunks(&chunks_map);
+        success = setup_cached_chunks();
+
+        if (!success) {
+            return 1;
+        }
 
         return 0;
     }
