@@ -8,6 +8,7 @@
 #include <cmath>
 #include <vector>
 #include <iostream>
+#include "../Rendering/ChunkVisual.h"
 
 namespace Chunk {
 	struct Chunk;
@@ -20,6 +21,7 @@ namespace Chunk {
 		int x,y;
 		float Cw;
 		std::unordered_map<int,chunk_list> cached_chunks;
+		ChunkVisual::ChunkVisual visuals;
 		void _init(float y_pos, float x_pos, float width) {
 			x = x_pos;
 			y = y_pos;

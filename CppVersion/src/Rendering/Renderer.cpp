@@ -55,7 +55,7 @@ namespace Renderer {
         }
     }
 
-    void present() {
+    void present(float mouseX, float mouseY) {
         SDL_SetRenderDrawColor(gScreenRenderer,0,0,0,255);
         SDL_RenderClear(gScreenRenderer);
         present_chunk_grid();

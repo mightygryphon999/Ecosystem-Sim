@@ -22,13 +22,22 @@ int main() {
         SDL_Event e;
         SDL_zero(e);
 
+        float mouseX{ 0.0f };
+        float mouseY{ 0.0f };
+
         while (quit == false) {
             while (SDL_PollEvent(&e) == true) {
-                if (e.type == SDL_EVENT_QUIT) {
-                    quit = true;
+                switch (e.type) {
+                    case SDL_EVENT_QUIT: {
+                        quit = true;
+                    }
+                    case SDL_EVENT_MOUSE_MOTION: {
+                        mouseX = e.motion.x;
+                        mouseY = e.motion.y;
+                    }
                 }
             }
-            Renderer::present();
+            Renderer::present(mouseX, mouseY);
         }
     }
 

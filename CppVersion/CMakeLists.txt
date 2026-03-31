@@ -14,6 +14,10 @@ add_executable(${PROJECT_NAME} src/main.cpp
         src/Simulation/World.h
         src/Rendering/Renderer.cpp
         src/Rendering/Renderer.h
+        src/Rendering/ChunkVisual.cpp
+        src/Rendering/ChunkVisual.h
+        src/Rendering/Visualizers/ChunkNeighborsVisualizer.cpp
+        src/Rendering/Visualizers/ChunkNeighborsVisualizer.h
 )
 
 set(SDL3_ROOT "/opt/homebrew/opt/sdl3")
