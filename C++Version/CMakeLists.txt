@@ -1,12 +1,19 @@
 cmake_minimum_required(VERSION 3.22)
-project(C__Version)
+project(Ecosystem Simulator C++)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-add_executable(${PROJECT_NAME} src/main.cpp)
+add_executable(${PROJECT_NAME} src/main.cpp
+        src/Simulation/Chunk.cpp
+        src/Simulation/Chunk.h
+        src/Simulation/World.cpp
+        src/Simulation/World.h
+        src/Rendering/Renderer.cpp
+        src/Rendering/Renderer.h
+)
 
-set(SDL3_ROOT "/opt/homebrew/opt/sdl3")  # Change if brew prefix differs
+set(SDL3_ROOT "/opt/homebrew/opt/sdl3")
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${SDL3_ROOT}/include)
 
