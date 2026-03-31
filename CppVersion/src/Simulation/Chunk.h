@@ -24,7 +24,6 @@ namespace ChunkData {
 
         int _setup_cached_chunks(int max_range, int step, Chunk (&chunks_map)[10][10]);
     };
-
 } // Chunk
 
 #endif //C__VERSION_CHUNK_H

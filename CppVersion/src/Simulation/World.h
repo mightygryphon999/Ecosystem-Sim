@@ -7,7 +7,7 @@
 #include "Chunk.h"
 
 namespace World {
-    ChunkData::Chunk chunks_map;
+    inline ChunkData::Chunk chunks_map_main[10][10];
 
     int init();
 } // World
