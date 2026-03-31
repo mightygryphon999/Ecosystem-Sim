@@ -1,5 +1,6 @@
 #include <iostream>
 #include "Rendering/Renderer.h"
+#include "Simulation/World.h"
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 
@@ -8,7 +9,10 @@ int main() {
 
     int exitCode{ 0 };
 
-    if (Renderer::init() == false) {
+    if (World::init() == 1) {
+        exitCode = 2;
+    }
+    else if (Renderer::init() == false) {
         SDL_Log("Unable to activate program\n");
         exitCode = 1;
     }

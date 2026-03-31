@@ -7,6 +7,8 @@
 #include "Chunk.h"
 
 namespace World {
+    ChunkData::Chunk chunks_map[10][10];
+
     int setup_chunks(ChunkData::Chunk (&chunks_map)[10][10]){
         int i = 0;
         int j = 0;
@@ -24,10 +26,8 @@ namespace World {
         return 1;
     }
 
-    int main()
+    int init()
     {
-        ChunkData::Chunk chunks_map[10][10];
-
         int success = setup_chunks(chunks_map);
 
         if (!success) {
