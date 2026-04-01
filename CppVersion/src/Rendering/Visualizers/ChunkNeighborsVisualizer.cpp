@@ -24,6 +24,29 @@ namespace ChunkNeighborsVisualizer {
 
     void present_closest_connections_mouse(SDL_Renderer* &renderer, float mouse_x, float mouse_y, float mouseScrollY);
 
+    void handle_chunk_input(const SDL_Event* &e) {
+        if (e->type == SDL_EVENT_KEY_DOWN) {
+            std::cout<<"Detected key";
+            switch (e->key.scancode) {
+                case SDL_SCANCODE_0: {
+                    std::cout<<"Detected key 0";
+                    mode = 0;
+                    break;
+                }
+                case SDL_SCANCODE_1 : {
+                    std::cout<<"Detected key 1";
+                    mode = 1;
+                    break;
+                }
+                case SDL_SCANCODE_2 : {
+                    std::cout<<"Detected key 2";
+                    mode = 2;
+                    break;
+                }
+            }
+        }
+    }
+
     void present_chunk_neighbors_visualizer(SDL_Renderer* &renderer, float mouse_x, float mouse_y, float mouseScrollY) {
         if (mode == 0) {
             present_chunk_neighbors_filled(renderer, mouse_x, mouse_y, mouseScrollY);
@@ -55,10 +78,6 @@ namespace ChunkNeighborsVisualizer {
                     TestPoint::test_point point = MathUtils::find_nearest_connection_test_points(World::chunks_map_main[x][y], mouse_x, mouse_y, range);
                     SDL_SetRenderDrawColor(renderer, 255,255,255,1.0f);
                     SDL_RenderLine(renderer, mouse_x, mouse_y, point.x, point.y);
-                    std::cout << "pos: " << mouse_x << ", " << mouse_y << " | point: "
-                              << point.x << ", " << point.y
-                              << " | dx=" << (mouse_x - point.x)
-                              << " dy=" << (mouse_y - point.y) << "\n";
                     break;
                 }
                 if (found_chunk) {
@@ -111,11 +130,21 @@ namespace ChunkNeighborsVisualizer {
             for (int y = 0; y < 10; y++) {
                 SDL_FRect rect {x * kCellSize, y * kCellSize, kCellSize, kCellSize};
                 SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
-                if (World::chunks_map_main[x][y].visuals.filled) {
+                if (World::chunks_map_main[x][y].visuals.filled && mode != 1) {
                     SDL_RenderFillRect(renderer, &rect);
                 }
                 else {
                     SDL_RenderRect(renderer, &rect);
+                }
+                for (int i = 0; i < World::chunks_map_main[x][y].test_points.size(); i++) {
+                    SDL_FRect rect {World::chunks_map_main[x][y].test_points[i].x, World::chunks_map_main[x][y].test_points[i].y, 5, 5};
+                    SDL_SetRenderDrawColor(renderer, 0, 255, 0, 1.0f);
+                    if (World::chunks_map_main[x][y].visuals.filled) {
+                        SDL_RenderFillRect(renderer, &rect);
+                    }
+                    else {
+                        SDL_RenderRect(renderer, &rect);
+                    }
                 }
             }
         }

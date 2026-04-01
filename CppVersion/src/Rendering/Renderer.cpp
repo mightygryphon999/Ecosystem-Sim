@@ -44,6 +44,10 @@ namespace Renderer {
 
     bool loadMedia();
 
+    void handle_input(const SDL_Event* e) {
+        ChunkNeighborsVisualizer::handle_chunk_input(e);
+    }
+
     void present(float mouseX, float mouseY, float mouseScrollY) {
         SDL_SetRenderDrawColor(gScreenRenderer,0,0,0,255);
         SDL_RenderClear(gScreenRenderer);

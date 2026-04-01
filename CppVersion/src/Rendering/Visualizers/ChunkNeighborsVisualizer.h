@@ -7,6 +7,7 @@
 #include <SDL3/SDL_render.h>
 
 namespace ChunkNeighborsVisualizer {
+    void handle_chunk_input(const SDL_Event* &e);
     void present_chunk_neighbors_visualizer(SDL_Renderer* &renderer, float mouse_x, float mouse_y, float mouseScrollY);
 } // ChunkNeighborsVisualizer
 

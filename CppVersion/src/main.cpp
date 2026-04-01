@@ -30,6 +30,7 @@ int main() {
         while (quit == false) {
             mouseScrollY = 0;
             while (SDL_PollEvent(&e) == true) {
+                Renderer::handle_input(&e);
                 switch (e.type) {
                     case SDL_EVENT_QUIT: {
                         quit = true;
