@@ -22,6 +22,9 @@ add_executable(${PROJECT_NAME} src/main.cpp
         src/Simulation/TestClasses/TestPoint.h
         src/Simulation/MathUtils.cpp
         src/Simulation/MathUtils.h
+        src/Rendering/Visualizers/fonts/font_bitmap.h
+        src/Rendering/Visualizers/fonts/font.cpp
+        src/Rendering/Visualizers/fonts/font.h
 )
 
 set(SDL3_ROOT "/opt/homebrew/opt/sdl3")

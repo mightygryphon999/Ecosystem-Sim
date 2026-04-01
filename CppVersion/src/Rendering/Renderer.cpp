@@ -9,8 +9,9 @@
 #include <SDL3/SDL_main.h>
 #include <SDL3/SDL_render.h>
 #include "Visualizers/ChunkNeighborsVisualizer.h"
+#include "Visualizers/fonts/font.h"
 
-constexpr int kScreenWidth{ 640 };
+constexpr int kScreenWidth{ 1000 };
 constexpr int kScreenHeight{ 640 };
 
 namespace Renderer {
@@ -52,6 +53,7 @@ namespace Renderer {
         SDL_SetRenderDrawColor(gScreenRenderer,0,0,0,255);
         SDL_RenderClear(gScreenRenderer);
         ChunkNeighborsVisualizer::present_chunk_neighbors_visualizer(gScreenRenderer, mouseX, mouseY, mouseScrollY);
+
         SDL_RenderPresent(gScreenRenderer);
     }
 

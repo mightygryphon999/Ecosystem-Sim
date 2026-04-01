@@ -13,10 +13,13 @@
 #include <iostream>
 #include <SDL3/SDL_render.h>
 #include <vector>
+#include "fonts/font.h"
 
 namespace ChunkNeighborsVisualizer {
-    int range = 130;
-    int mode = 2;
+    int range{ 130 };
+    int mode{ 2 };
+    int active_points{ 0 };
+    int active_moving_points{ 0 };
     SDL_FRect rectT;
 
     void present_chunk_grid(SDL_Renderer* &renderer);
@@ -62,6 +65,13 @@ namespace ChunkNeighborsVisualizer {
             present_chunk_neighbors_filled(renderer, mouse_x, mouse_y, mouseScrollY);
             present_chunk_grid(renderer);
         }
+        SDL_Texture* texture = font::load_font(renderer);
+        std::string mode_text = "Mode: " + std::to_string(mode);
+        font::draw_text(renderer, mode_text.c_str(), 660, 20, 2);
+        mode_text = "Points moving: " + std::to_string(active_moving_points);
+        font::draw_text(renderer, mode_text.c_str(), 660, 40, 2);
+        mode_text = "Points non-moving: " + std::to_string(active_points);
+        font::draw_text(renderer, mode_text.c_str(), 660, 60, 2);
     }
 
     void present_closest_connections_mouse(SDL_Renderer* &renderer, float mouse_x, float mouse_y, float mouseScrollY) { // finds the closest connections to agents within the range of the mouse cursor
@@ -127,6 +137,9 @@ namespace ChunkNeighborsVisualizer {
     void present_chunk_grid(SDL_Renderer* &renderer) {
         std::cout << "RENDER chunks_map_main address: " << &World::chunks_map_main << std::endl;
 
+        active_moving_points = 0;
+        active_points = 0;
+
         constexpr float kCellSize = 64.0f;
 
         for (int x = 0; x < 10; x++) {
@@ -144,9 +157,11 @@ namespace ChunkNeighborsVisualizer {
                     std::cout<<" x, y "<<World::chunks_map_main[x][y].test_points[i].x<<" "<<World::chunks_map_main[x][y].test_points[i].y<<" ID: "<<World::chunks_map_main[x][y].test_points[i].id<<std::endl;
                     std::cout<<"Rect positions: "<<rectT.x<<" "<<rectT.y<<std::endl;
                     if (World::chunks_map_main[x][y].test_points[i].moving) {
+                        active_moving_points += 1;
                         SDL_SetRenderDrawColor(renderer, 0, 0, 255, 1.0f);
                     }
                     else {
+                        active_points += 1;
                         SDL_SetRenderDrawColor(renderer, 0, 255, 0, 1.0f);
                     }
                     SDL_RenderFillRect(renderer, &rectT);
