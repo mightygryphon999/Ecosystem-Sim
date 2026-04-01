@@ -17,6 +17,7 @@
 namespace ChunkNeighborsVisualizer {
     int range = 130;
     int mode = 2;
+    SDL_FRect rectT;
 
     void present_chunk_grid(SDL_Renderer* &renderer);
 
@@ -124,6 +125,8 @@ namespace ChunkNeighborsVisualizer {
     }
 
     void present_chunk_grid(SDL_Renderer* &renderer) {
+        std::cout << "RENDER chunks_map_main address: " << &World::chunks_map_main << std::endl;
+
         constexpr float kCellSize = 64.0f;
 
         for (int x = 0; x < 10; x++) {
@@ -137,14 +140,16 @@ namespace ChunkNeighborsVisualizer {
                     SDL_RenderRect(renderer, &rect);
                 }
                 for (int i = 0; i < World::chunks_map_main[x][y].test_points.size(); i++) {
-                    SDL_FRect rect {World::chunks_map_main[x][y].test_points[i].x, World::chunks_map_main[x][y].test_points[i].y, 5, 5};
-                    SDL_SetRenderDrawColor(renderer, 0, 255, 0, 1.0f);
-                    if (World::chunks_map_main[x][y].visuals.filled) {
-                        SDL_RenderFillRect(renderer, &rect);
+                    rectT = {World::chunks_map_main[x][y].test_points[i].x, World::chunks_map_main[x][y].test_points[i].y, 5, 5};
+                    std::cout<<" x, y "<<World::chunks_map_main[x][y].test_points[i].x<<" "<<World::chunks_map_main[x][y].test_points[i].y<<" ID: "<<World::chunks_map_main[x][y].test_points[i].id<<std::endl;
+                    std::cout<<"Rect positions: "<<rectT.x<<" "<<rectT.y<<std::endl;
+                    if (World::chunks_map_main[x][y].test_points[i].moving) {
+                        SDL_SetRenderDrawColor(renderer, 0, 0, 255, 1.0f);
                     }
                     else {
-                        SDL_RenderRect(renderer, &rect);
+                        SDL_SetRenderDrawColor(renderer, 0, 255, 0, 1.0f);
                     }
+                    SDL_RenderFillRect(renderer, &rectT);
                 }
             }
         }

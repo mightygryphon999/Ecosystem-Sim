@@ -27,6 +27,8 @@ namespace ChunkData {
         void _init(float y_pos, float x_pos, float width);
 
         int _setup_cached_chunks(int max_range, int step, Chunk (&chunks_map)[10][10]);
+
+        int _simulation_step(bool testing);
     };
 } // Chunk
 

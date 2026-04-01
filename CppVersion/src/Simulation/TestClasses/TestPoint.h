@@ -8,6 +8,8 @@
 namespace TestPoint {
     struct test_point {
         float x,y;
+        bool moving;
+        int id;
     };
 } // TestPoint
 

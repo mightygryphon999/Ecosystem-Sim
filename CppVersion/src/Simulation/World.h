@@ -7,9 +7,11 @@
 #include "Chunk.h"
 
 namespace World {
-    inline ChunkData::Chunk chunks_map_main[10][10];
+    extern ChunkData::Chunk chunks_map_main[10][10];
 
     int init();
+
+    int simulation_step(bool testing);
 } // World
 
 #endif //C__VERSION_WORLD_H

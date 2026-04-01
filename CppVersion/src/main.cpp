@@ -48,6 +48,7 @@ int main() {
                 }
             }
             Renderer::present(mouseX, mouseY, mouseScrollY);
+            World::simulation_step(true);
         }
     }
 
