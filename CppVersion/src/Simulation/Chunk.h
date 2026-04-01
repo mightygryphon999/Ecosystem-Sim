@@ -7,6 +7,7 @@
 #include "../Rendering/ChunkVisual.h"
 #include <unordered_map>
 #include <vector>
+#include "TestClasses/TestPoint.h"
 
 namespace ChunkData {
 
@@ -20,6 +21,7 @@ namespace ChunkData {
         float x,y;
         float Cw;
         std::unordered_map<int,chunk_list> cached_chunks;
+        std::vector<TestPoint::test_point> test_points;
         ChunkVisual::ChunkVisual visuals;
 
         void _init(float y_pos, float x_pos, float width);

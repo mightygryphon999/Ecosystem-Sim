@@ -6,15 +6,27 @@
 
 #include "Chunk.h"
 
+#include <random>
+
 namespace World {
     int setup_chunks(ChunkData::Chunk (&chunks_map)[10][10]){
         int i = 0;
         int j = 0;
 
+        unsigned seed = static_cast<unsigned int>(std::time(nullptr));
+
+        std::mt19937 rng(seed);
+        std::uniform_int_distribution<int> dist(0, 1);
+
         for (i = 0; i < 10; i++) {
             for (j = 0; j < 10; j++) {
-                const ChunkData::Chunk c = {static_cast<float>(j) * 64,static_cast<float>(i) * 64,64};
+                const ChunkData::Chunk c = {static_cast<float>(i) * 64,static_cast<float>(j) * 64,64};
                 chunks_map[i][j] = c;
+
+                // for spawning test points randomly
+                if (dist(rng) == 1) {
+                    chunks_map[i][j].test_points.push_back({chunks_map[i][j].x + chunks_map[i][j].Cw/2,chunks_map[i][j].y + chunks_map[i][j].Cw/2});
+                }
             }
         }
         return 1;
