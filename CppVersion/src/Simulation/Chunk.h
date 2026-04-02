@@ -8,8 +8,10 @@
 #include <unordered_map>
 #include <vector>
 #include "TestClasses/TestPoint.h"
+#include "../config.h"
 
 namespace ChunkData {
+    constexpr int world_map_size_chunks = WORLD_SIZE / WORLD_CHUNK_SIZE;
 
     struct Chunk;
 
@@ -26,7 +28,7 @@ namespace ChunkData {
 
         void _init(float y_pos, float x_pos, float width);
 
-        int _setup_cached_chunks(int max_range, int step, Chunk (&chunks_map)[10][10]);
+        int _setup_cached_chunks(int max_range, int step, Chunk (&chunks_map)[world_map_size_chunks][world_map_size_chunks]);
 
         int _simulation_step(bool testing);
     };

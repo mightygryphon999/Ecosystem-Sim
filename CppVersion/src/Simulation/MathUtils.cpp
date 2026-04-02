@@ -6,6 +6,8 @@
 #include "Chunk.h"
 #include "TestClasses/TestPoint.h"
 #include <utility>
+#include "World.h"
+#include "../config.h"
 
 namespace MathUtils {
 

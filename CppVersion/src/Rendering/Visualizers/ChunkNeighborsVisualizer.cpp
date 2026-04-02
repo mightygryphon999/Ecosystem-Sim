@@ -4,6 +4,7 @@
 
 #include "ChunkNeighborsVisualizer.h"
 #include "../../Simulation//World.h"
+#include "../../config.h"
 #include "../../Simulation/Chunk.h"
 #include "../../Simulation/MathUtils.h"
 #include "../../Simulation/TestClasses/TestPoint.h"
@@ -78,12 +79,12 @@ namespace ChunkNeighborsVisualizer {
         range += mouseScrollY * 10.0f;
         range = std::round(range / 10.0f) * 10.0f;
 
-        int flooredX = std::floor(mouse_x/64);
-        int flooredY = std::floor(mouse_y/64);
+        int flooredX = std::floor(mouse_x/WORLD_CHUNK_SIZE);
+        int flooredY = std::floor(mouse_y/WORLD_CHUNK_SIZE);
 
         bool found_chunk{ false };
-        for (int x = 0; x < 10; x++) {
-            for (int y = 0; y < 10; y++) {
+        for (int x = 0; x < World::world_map_size; x++) {
+            for (int y = 0; y < World::world_map_size; y++) {
                 if (flooredX == x && flooredY == y) {
                     found_chunk = true;
                     TestPoint::test_point point = MathUtils::find_nearest_connection_test_points(World::chunks_map_main[x][y], mouse_x, mouse_y, range);
@@ -104,17 +105,17 @@ namespace ChunkNeighborsVisualizer {
 
     void present_chunk_neighbors_filled(SDL_Renderer* &renderer, float mouse_x, float mouse_y, float mouseScrollY) {
         bool found_chunk{ false };
-        int flooredX = std::floor(mouse_x/64);
-        int flooredY = std::floor(mouse_y/64);
+        int flooredX = std::floor(mouse_x/WORLD_CHUNK_SIZE);
+        int flooredY = std::floor(mouse_y/WORLD_CHUNK_SIZE);
         range += mouseScrollY * 10.0f;
         range = std::round(range / 10.0f) * 10.0f;
-        for (int x = 0; x < 10; x++) {
-            for (int y = 0; y < 10; y++) {
+        for (int x = 0; x < World::world_map_size; x++) {
+            for (int y = 0; y < World::world_map_size; y++) {
                 World::chunks_map_main[x][y].visuals.filled = false;
             }
         }
-        for (int x = 0; x < 10; x++) {
-            for (int y = 0; y < 10; y++) {
+        for (int x = 0; x < World::world_map_size; x++) {
+            for (int y = 0; y < World::world_map_size; y++) {
                 if (flooredX == x && flooredY == y) {
                     found_chunk = true;
                     for (ChunkData::Chunk* &chunk : World::chunks_map_main[x][y].cached_chunks[range].chunks) {
@@ -140,10 +141,10 @@ namespace ChunkNeighborsVisualizer {
         active_moving_points = 0;
         active_points = 0;
 
-        constexpr float kCellSize = 64.0f;
+        constexpr float kCellSize = WORLD_CHUNK_SIZE;
 
-        for (int x = 0; x < 10; x++) {
-            for (int y = 0; y < 10; y++) {
+        for (int x = 0; x < World::world_map_size; x++) {
+            for (int y = 0; y < World::world_map_size; y++) {
                 SDL_FRect rect {x * kCellSize, y * kCellSize, kCellSize, kCellSize};
                 SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
                 if (World::chunks_map_main[x][y].visuals.filled && mode != 1) {

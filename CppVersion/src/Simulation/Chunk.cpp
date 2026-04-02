@@ -10,7 +10,8 @@
 #include <iostream>
 #include <unordered_set>
 #include <utility>
-
+#include "../config.h"
+#include "World.h"
 #include "../Rendering/ChunkVisual.h"
 
 namespace ChunkData {
@@ -19,7 +20,7 @@ namespace ChunkData {
 		y = y_pos;
 		Cw = width;
 	}
-	int Chunk::_setup_cached_chunks(int max_range, int step, Chunk (&chunks_map)[10][10]){
+	int Chunk::_setup_cached_chunks(int max_range, int step, Chunk (&chunks_map)[world_map_size_chunks][world_map_size_chunks]){
 	    int i = 0;
 		float Cx = this->x + this->Cw/2;
 		float Cy = this->y + this->Cw/2;
@@ -29,8 +30,8 @@ namespace ChunkData {
 	    for (i = 0; i < max_range; i += step){
 	        int range = i;
 	    	std::cout<<"Calling for range: "<<range<<std::endl;
-	        for (int x_new = 0; x_new < 10; x_new++){
-	            for (int y_new = 0; y_new < 10; y_new++){
+	        for (int x_new = 0; x_new < world_map_size_chunks; x_new++){
+	            for (int y_new = 0; y_new < world_map_size_chunks; y_new++){
 	                Chunk &testing_chunk = chunks_map[x_new][y_new];
 
 	            	if (chunks_already_added.count(&testing_chunk)) continue;

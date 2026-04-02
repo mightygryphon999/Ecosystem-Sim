@@ -4,6 +4,7 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include "Rendering/SimulationInteractions.h"
+#include "config.h"
 
 int frameCount{ 0 };
 Uint64 pastTime{ 0 };

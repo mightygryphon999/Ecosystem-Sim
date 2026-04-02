@@ -3,17 +3,16 @@
 //
 
 #include "World.h"
-
 #include <iostream>
-
 #include "Chunk.h"
-
 #include <random>
+#include "../config.h"
 
 namespace World {
-    ChunkData::Chunk chunks_map_main[10][10];
 
-    int setup_chunks(ChunkData::Chunk (&chunks_map)[10][10]){
+    ChunkData::Chunk chunks_map_main[world_map_size][world_map_size];
+
+    int setup_chunks(ChunkData::Chunk (&chunks_map)[world_map_size][world_map_size]){
         int i = 0;
         int j = 0;
 
@@ -24,9 +23,9 @@ namespace World {
 
         int test_points_id{ 0 };
 
-        for (i = 0; i < 10; i++) {
-            for (j = 0; j < 10; j++) {
-                const ChunkData::Chunk c = {static_cast<float>(i) * 64,static_cast<float>(j) * 64,64};
+        for (i = 0; i < world_map_size; i++) {
+            for (j = 0; j < world_map_size; j++) {
+                const ChunkData::Chunk c = {static_cast<float>(i) * WORLD_CHUNK_SIZE,static_cast<float>(j) * WORLD_CHUNK_SIZE, WORLD_CHUNK_SIZE};
                 chunks_map[i][j] = c;
 
                 // for spawning test points randomly
@@ -44,8 +43,8 @@ namespace World {
     }
 
     int setup_cached_chunks(){
-        for (int x = 0; x < 10; x++) {
-            for (int y = 0; y < 10; y++) {
+        for (int x = 0; x < world_map_size; x++) {
+            for (int y = 0; y < world_map_size; y++) {
                 chunks_map_main[x][y]._setup_cached_chunks(250, 10, chunks_map_main);
             }
         }
@@ -55,22 +54,22 @@ namespace World {
     int simulation_step(bool testing) {
         std::cout << "SIM chunks_map_main address: " << &chunks_map_main << std::endl;
 
-        for (int x =  0; x < 10; x++) {
-            for (int y = 0; y < 10; y++) {
+        for (int x =  0; x < world_map_size; x++) {
+            for (int y = 0; y < world_map_size; y++) {
                 chunks_map_main[x][y]._simulation_step(testing);
             }
         }
 
         //deal with transfer of test points
-        for (int x = 0; x < 10; x++) {
-            for (int y = 0; y < 10; y++) {
+        for (int x = 0; x < world_map_size; x++) {
+            for (int y = 0; y < world_map_size; y++) {
                 auto& points = chunks_map_main[x][y].test_points;
                 for (int i = points.size() - 1; i >= 0; i--) {
-                    int new_cx = std::floor(points[i].x / 64);
-                    int new_cy = std::floor(points[i].y / 64);
+                    int new_cx = std::floor(points[i].x / WORLD_CHUNK_SIZE);
+                    int new_cy = std::floor(points[i].y / WORLD_CHUNK_SIZE);
 
-                    new_cx = std::clamp(new_cx, 0, 9);
-                    new_cy = std::clamp(new_cy, 0, 9);
+                    new_cx = std::clamp(new_cx, 0, world_map_size - 1);
+                    new_cy = std::clamp(new_cy, 0, world_map_size - 1);
 
                     if (new_cx != x || new_cy != y) {
                         chunks_map_main[new_cx][new_cy].test_points.push_back(points[i]);
