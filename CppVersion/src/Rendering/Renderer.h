@@ -10,7 +10,7 @@
 namespace Renderer {
     bool init();
     void handle_input(const SDL_Event* e);
-    void present(float mouseX, float mouseY, float mouseScrollY);
+    void present(float mouseX, float mouseY, float mouseScrollY, float fps);
     void close();
 } // Renderer
 

@@ -49,10 +49,12 @@ namespace Renderer {
         ChunkNeighborsVisualizer::handle_chunk_input(e);
     }
 
-    void present(float mouseX, float mouseY, float mouseScrollY) {
+    void present(float mouseX, float mouseY, float mouseScrollY, float fps) {
         SDL_SetRenderDrawColor(gScreenRenderer,0,0,0,255);
         SDL_RenderClear(gScreenRenderer);
         ChunkNeighborsVisualizer::present_chunk_neighbors_visualizer(gScreenRenderer, mouseX, mouseY, mouseScrollY);
+
+        font::draw_text(gScreenRenderer, std::to_string(fps).c_str(), 660, 80, 2);
 
         SDL_RenderPresent(gScreenRenderer);
     }

@@ -25,6 +25,8 @@ add_executable(${PROJECT_NAME} src/main.cpp
         src/Rendering/Visualizers/fonts/font_bitmap.h
         src/Rendering/Visualizers/fonts/font.cpp
         src/Rendering/Visualizers/fonts/font.h
+        src/Rendering/SimulationInteractions.cpp
+        src/Rendering/SimulationInteractions.h
 )
 
 set(SDL3_ROOT "/opt/homebrew/opt/sdl3")
