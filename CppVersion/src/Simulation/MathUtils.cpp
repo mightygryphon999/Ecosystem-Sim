@@ -31,8 +31,7 @@ namespace MathUtils {
             if (smallest_index != -1) {
                 point.targetX = point.x;
                 point.targetY = point.y;
-                TestPoint::test_point point_none = {point.x, point.y};
-                return point_none;
+                return parent_chunk.test_points[smallest_index];
             }
         }
         TestPoint::test_point best{};

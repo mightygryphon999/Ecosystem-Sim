@@ -19,6 +19,7 @@
 namespace ChunkNeighborsVisualizer {
     int range{ 130 };
     int mode{ 2 };
+    bool display_test_targets{ true };
     int active_points{ 0 };
     int active_moving_points{ 0 };
     SDL_FRect rectT;
@@ -155,10 +156,19 @@ namespace ChunkNeighborsVisualizer {
                     SDL_RenderRect(renderer, &rect);
                 }
                 for (int i = 0; i < World::chunks_map_main[x][y].test_points.size(); i++) {
-                    rectT = {World::chunks_map_main[x][y].test_points[i].x, World::chunks_map_main[x][y].test_points[i].y, 5, 5};
-                    std::cout<<" x, y "<<World::chunks_map_main[x][y].test_points[i].x<<" "<<World::chunks_map_main[x][y].test_points[i].y<<" ID: "<<World::chunks_map_main[x][y].test_points[i].id<<std::endl;
+                    TestPoint::test_point &point = World::chunks_map_main[x][y].test_points[i];
+                    rectT = {point.x, point.y, 5, 5};
+                    std::cout<<" x, y "<<point.x<<" "<<point.y<<" ID: "<<point.id<<std::endl;
                     std::cout<<"Rect positions: "<<rectT.x<<" "<<rectT.y<<std::endl;
-                    if (World::chunks_map_main[x][y].test_points[i].moving) {
+
+                    // Render the movement direction
+                    if (display_test_targets && point.moving && point.targetX != point.x && point.targetY != point.y) {
+                        SDL_SetRenderDrawColor(renderer,255,255,255,1.0f);
+                        SDL_RenderLine(renderer, point.x, point.y, point.targetX, point.targetY);
+                    }
+
+                    // Set color then render the point
+                    if (point.moving) {
                         active_moving_points += 1;
                         SDL_SetRenderDrawColor(renderer, 0, 0, 255, 1.0f);
                     }
