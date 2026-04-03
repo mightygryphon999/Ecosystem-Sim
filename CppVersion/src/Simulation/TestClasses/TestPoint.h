@@ -10,6 +10,7 @@ namespace TestPoint {
         float x,y;
         bool moving;
         int id;
+        float targetX, targetY;
     };
 } // TestPoint
 

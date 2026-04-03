@@ -13,7 +13,7 @@ namespace MathUtils {
 
     float distance_between_two_points(float x, float y, float x2, float y2);
 
-    TestPoint::test_point find_nearest_connection_test_points(const ChunkData::Chunk &parent_chunk, float pos_x, float pos_y, float range) {
+    TestPoint::test_point find_nearest_connection_test_points(const ChunkData::Chunk &parent_chunk, float pos_x, float pos_y, float range, TestPoint::test_point &point) {
         if (parent_chunk.test_points.size() > 0) {
             float smallest_distance = std::numeric_limits<float>::max();
             int smallest_index = -1;
@@ -29,7 +29,10 @@ namespace MathUtils {
                 }
             }
             if (smallest_index != -1) {
-                return parent_chunk.test_points[smallest_index];
+                point.targetX = point.x;
+                point.targetY = point.y;
+                TestPoint::test_point point_none = {point.x, point.y};
+                return point_none;
             }
         }
         TestPoint::test_point best{};
@@ -52,6 +55,9 @@ namespace MathUtils {
                 }
             }
         }
+        point.targetX = best.x;
+        point.targetY = best.y;
+
         return best;
     }
 

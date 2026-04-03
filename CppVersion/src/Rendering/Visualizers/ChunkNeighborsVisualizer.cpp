@@ -87,7 +87,8 @@ namespace ChunkNeighborsVisualizer {
             for (int y = 0; y < World::world_map_size; y++) {
                 if (flooredX == x && flooredY == y) {
                     found_chunk = true;
-                    TestPoint::test_point point = MathUtils::find_nearest_connection_test_points(World::chunks_map_main[x][y], mouse_x, mouse_y, range);
+                    TestPoint::test_point throw_away;
+                    TestPoint::test_point point = MathUtils::find_nearest_connection_test_points(World::chunks_map_main[x][y], mouse_x, mouse_y, range, throw_away);
                     SDL_SetRenderDrawColor(renderer, 255,255,255,1.0f);
                     SDL_RenderLine(renderer, mouse_x, mouse_y, point.x, point.y);
                     break;
