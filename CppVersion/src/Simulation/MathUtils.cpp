@@ -74,7 +74,7 @@ namespace MathUtils {
             return {x1,y1};
         }
 
-        float move_amount_speed = std::min(move_amount * step, dist);
+        float move_amount_speed = move_amount * step;
 
         if ((move_amount_speed*move_amount_speed) >= dist) {
             return {x2,y2};
@@ -89,13 +89,13 @@ namespace MathUtils {
     }
 
     float fast_inv_sqrt(float number) {
-        long i;
+        int32_t i;
         float x2, y;
 
         x2 = number*0.5f;
         y = number;
 
-        i = *reinterpret_cast<long *>(&y);
+        i = *reinterpret_cast<int32_t *>(&y);
         i = 0x5f3759df - (i >> 1);
 
         y = *reinterpret_cast<float *>(&i);
