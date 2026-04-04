@@ -12,6 +12,7 @@
 namespace MathUtils {
 
     float distance_between_two_points(float x, float y, float x2, float y2);
+    float fast_inv_sqrt(float number);
 
     TestPoint::test_point find_nearest_connection_test_points(const ChunkData::Chunk &parent_chunk, float pos_x, float pos_y, float range, TestPoint::test_point &point) {
         if (parent_chunk.test_points.size() > 1) {
@@ -41,6 +42,9 @@ namespace MathUtils {
                 continue;
             }
             for (int b = 0; b < chunk_list.chunks.size(); b++) {
+                if (chunk_list.chunks[b]->test_points.size() < 1) {
+                    continue;
+                }
                 for (int i = 0; i < chunk_list.chunks[b]->test_points.size(); i++) {
                     TestPoint::test_point point = chunk_list.chunks[b]->test_points[i];
                     if ((point.x == pos_x && point.y == pos_y) || point.moving) {
@@ -64,7 +68,7 @@ namespace MathUtils {
         float dx = x2 - x1;
         float dy = y2 - y1;
 
-        float dist = std::sqrt(distance_between_two_points(x1, y1, x2, y2));
+        float dist = distance_between_two_points(x1, y1, x2, y2);
 
         if (dist == 0) {
             return {x1,y1};
@@ -72,10 +76,33 @@ namespace MathUtils {
 
         float move_amount_speed = std::min(move_amount * step, dist);
 
-        float nx = x1 + (dx / dist) * move_amount_speed;
-        float ny = y1 + (dy / dist) * move_amount_speed;
+        if ((move_amount_speed*move_amount_speed) >= dist) {
+            return {x2,y2};
+        }
+
+        float invsqr = fast_inv_sqrt(dist);
+
+        float nx = x1 + (dx * invsqr) * move_amount_speed;
+        float ny = y1 + (dy * invsqr) * move_amount_speed;
 
         return {nx, ny};
+    }
+
+    float fast_inv_sqrt(float number) {
+        long i;
+        float x2, y;
+
+        x2 = number*0.5f;
+        y = number;
+
+        i = *reinterpret_cast<long *>(&y);
+        i = 0x5f3759df - (i >> 1);
+
+        y = *reinterpret_cast<float *>(&i);
+
+        y = y*(1.5f - (x2 *  y * y));
+
+        return y;
     }
 
     float distance_between_two_points(float x, float y, float x2, float y2) {
