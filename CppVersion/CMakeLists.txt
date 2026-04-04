@@ -33,6 +33,10 @@ add_executable(${PROJECT_NAME} src/main.cpp
         src/Rendering/UI/UIEditorSettings/UIEditorSettingsObjects/UIViewTargetLineCheckbox.h
         src/Rendering/UI/UIEditorSettings/UIEditorSettingsRenderer.cpp
         src/Rendering/UI/UIEditorSettings/UIEditorSettingsRenderer.h
+        src/Rendering/UI/UIElements/UIVerticalElement.h
+        src/Rendering/UI/UIElements/LayoutElements/UIVerticalLayout.cpp
+        src/Rendering/UI/UIElements/LayoutElements/UIVerticalLayout.h
+        src/Rendering/UI/UIElements/UIElement.h
 )
 
 set(SDL3_ROOT "/opt/homebrew/opt/sdl3")

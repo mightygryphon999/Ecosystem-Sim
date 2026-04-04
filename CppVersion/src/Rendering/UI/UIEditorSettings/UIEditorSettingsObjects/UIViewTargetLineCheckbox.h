@@ -7,11 +7,12 @@
 
 #include "../../UIElements/UICheckbox.h"
 #include "../../../Renderer.h"
+#include "../../UIElements/UIVerticalElement.h"
 
 namespace UIViewTargetLineCheckbox {
-    inline SDL_FRect rect = SDL_FRect{Renderer::kScreenWidth / 2 - 5, Renderer::kScreenHeight / 2 - 5, 10,10};
+    struct UIViewTargetLineCheckbox : UICheckbox::UICheckbox, UIVerticalElement::UIVerticalElement {
+        SDL_FRect rect = SDL_FRect{x, y, 10,10};
 
-    struct UIViewTargetLineCheckbox : UICheckbox::UICheckbox {
         void handle_clicked() override;
         void handle_event(const SDL_Event &e) override;
         void render(SDL_Renderer *renderer) override;

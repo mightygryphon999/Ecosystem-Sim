@@ -35,7 +35,7 @@ namespace UIViewTargetLineCheckbox {
     }
 
     void UIViewTargetLineCheckbox::render(SDL_Renderer *renderer) {
-        rect = SDL_FRect{650, 80, 40,40};
+        rect = SDL_FRect{x, y, 40,40};
 
         if (pressed) {
             SDL_SetRenderDrawColor(renderer, 0, 255, 0, 1.0f);
