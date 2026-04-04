@@ -19,7 +19,6 @@
 namespace ChunkNeighborsVisualizer {
     int range{ 130 };
     int mode{ 2 };
-    bool display_test_targets{ true };
     int active_points{ 0 };
     int active_moving_points{ 0 };
     SDL_FRect rectT;
@@ -30,7 +29,7 @@ namespace ChunkNeighborsVisualizer {
 
     void present_closest_connections_mouse(SDL_Renderer* &renderer, float mouse_x, float mouse_y, float mouseScrollY);
 
-    void handle_chunk_input(const SDL_Event* &e) {
+    void handle_chunk_input(SDL_Event* e) {
         if (e->type == SDL_EVENT_KEY_DOWN) {
             std::cout<<"Detected key";
             switch (e->key.scancode) {
@@ -138,7 +137,6 @@ namespace ChunkNeighborsVisualizer {
     }
 
     void present_chunk_grid(SDL_Renderer* &renderer) {
-        std::cout << "RENDER chunks_map_main address: " << &World::chunks_map_main << std::endl;
 
         active_moving_points = 0;
         active_points = 0;
@@ -158,8 +156,6 @@ namespace ChunkNeighborsVisualizer {
                 for (int i = 0; i < World::chunks_map_main[x][y].test_points.size(); i++) {
                     TestPoint::test_point &point = World::chunks_map_main[x][y].test_points[i];
                     rectT = {point.x, point.y, 5, 5};
-                    std::cout<<" x, y "<<point.x<<" "<<point.y<<" ID: "<<point.id<<std::endl;
-                    std::cout<<"Rect positions: "<<rectT.x<<" "<<rectT.y<<std::endl;
 
                     // Render the movement direction
                     if (display_test_targets && point.moving && point.targetX != point.x && point.targetY != point.y) {

@@ -50,7 +50,7 @@ int main() {
             frame_rate();
             mouseScrollY = 0;
             while (SDL_PollEvent(&e) == true) {
-                Renderer::handle_input(&e);
+                Renderer::handle_input(e);
                 SimulationInteractions::mouse_interaction(&e, mouseX, mouseY);
                 switch (e.type) {
                     case SDL_EVENT_QUIT: {

@@ -8,8 +8,11 @@
 #include <SDL3/SDL.h>
 
 namespace Renderer {
+    constexpr int kScreenWidth{ 1000 };
+    constexpr int kScreenHeight{ 640 };
+
     bool init();
-    void handle_input(const SDL_Event* e);
+    void handle_input(SDL_Event &e);
     void present(float mouseX, float mouseY, float mouseScrollY, float fps);
     void close();
 } // Renderer

@@ -10,9 +10,7 @@
 #include <SDL3/SDL_render.h>
 #include "Visualizers/ChunkNeighborsVisualizer.h"
 #include "Visualizers/fonts/font.h"
-
-constexpr int kScreenWidth{ 1000 };
-constexpr int kScreenHeight{ 640 };
+#include "UI/UIEditorSettings/UIEditorSettingsRenderer.h"
 
 namespace Renderer {
     // Global Variables
@@ -45,8 +43,9 @@ namespace Renderer {
 
     bool loadMedia();
 
-    void handle_input(const SDL_Event* e) {
-        ChunkNeighborsVisualizer::handle_chunk_input(e);
+    void handle_input(SDL_Event &e) {
+        ChunkNeighborsVisualizer::handle_chunk_input(&e);
+        UIEditorSettingsRenderer::input(e);
     }
 
     void present(float mouseX, float mouseY, float mouseScrollY, float fps) {
@@ -55,6 +54,8 @@ namespace Renderer {
         ChunkNeighborsVisualizer::present_chunk_neighbors_visualizer(gScreenRenderer, mouseX, mouseY, mouseScrollY);
 
         font::draw_text(gScreenRenderer, std::to_string(fps).c_str(), 660, 80, 2);
+
+        UIEditorSettingsRenderer::render(gScreenRenderer);
 
         SDL_RenderPresent(gScreenRenderer);
     }

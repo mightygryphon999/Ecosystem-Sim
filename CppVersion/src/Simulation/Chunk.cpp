@@ -63,10 +63,8 @@ namespace ChunkData {
 				if (point.moving) {
 					TestPoint::test_point target = MathUtils::find_nearest_connection_test_points(*this, point.x, point.y, range, point);
 					std::pair<float, float> new_pos = MathUtils::move_towards(point.x,point.y,target.x,target.y,1,1);
-					std::cout<<"Tx, Ty"<<new_pos.first<<" "<<new_pos.second<<" Ox, Oy "<<point.x<<" "<<point.y<<" ID: "<<point.id<<std::endl;
 					point.x = new_pos.first;
 					point.y = new_pos.second;
-					std::cout<<" x, y "<<point.x<<" "<<point.y<<" ID: "<<point.id<<std::endl;
 				}
 			}
 		}

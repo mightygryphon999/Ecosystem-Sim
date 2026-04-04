@@ -52,8 +52,6 @@ namespace World {
     }
 
     int simulation_step(bool testing) {
-        std::cout << "SIM chunks_map_main address: " << &chunks_map_main << std::endl;
-
         for (int x =  0; x < world_map_size; x++) {
             for (int y = 0; y < world_map_size; y++) {
                 chunks_map_main[x][y]._simulation_step(testing);
