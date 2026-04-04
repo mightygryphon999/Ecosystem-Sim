@@ -14,7 +14,7 @@ namespace MathUtils {
     float distance_between_two_points(float x, float y, float x2, float y2);
 
     TestPoint::test_point find_nearest_connection_test_points(const ChunkData::Chunk &parent_chunk, float pos_x, float pos_y, float range, TestPoint::test_point &point) {
-        if (parent_chunk.test_points.size() > 0) {
+        if (parent_chunk.test_points.size() > 1) {
             float smallest_distance = std::numeric_limits<float>::max();
             int smallest_index = -1;
             for (int i = 0; i < parent_chunk.test_points.size(); i++) {
