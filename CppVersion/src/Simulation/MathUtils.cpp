@@ -89,13 +89,12 @@ namespace MathUtils {
     }
 
     float fast_inv_sqrt(float number) {
-        int32_t i;
-        float x2, y;
+        float y;
 
-        x2 = number*0.5f;
+        float x2 = number * 0.5f;
         y = number;
 
-        i = *reinterpret_cast<int32_t *>(&y);
+        int32_t i = *reinterpret_cast<int32_t *>(&y);
         i = 0x5f3759df - (i >> 1);
 
         y = *reinterpret_cast<float *>(&i);
