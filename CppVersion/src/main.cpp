@@ -4,6 +4,7 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_main.h>
 #include "Rendering/SimulationInteractions.h"
+#include <chrono>
 #include "config.h"
 
 int frameCount{ 0 };
@@ -25,10 +26,13 @@ int frame_rate() {
 
 int main() {
     std::cout << "Starting Program" << std::endl;
+    std::cout << "Choose starting prgm: ecosystem {params}" << std::endl;
+
+    auto start = std::chrono::steady_clock::now();
 
     int exitCode{ 0 };
 
-    if (World::init() == 1) {
+    if (World::init(true, 100) == 1) {
         exitCode = 2;
     }
     else if (Renderer::init() == false) {
@@ -36,6 +40,7 @@ int main() {
         exitCode = 1;
     }
     else {
+
         bool quit{ false };
 
         SDL_Event e;
@@ -69,7 +74,14 @@ int main() {
                 }
             }
             Renderer::present(mouseX, mouseY, mouseScrollY, fps);
+
+            start = std::chrono::steady_clock::now();
+
             World::simulation_step(true);
+
+            std::chrono::duration<double, std::milli> elapsed = std::chrono::steady_clock::now() - start;
+            std::cout << "Elapsed time: " << elapsed.count() << "ms" << std::endl;
+            std::cout << "\033[2J\033[H";
         }
     }
 

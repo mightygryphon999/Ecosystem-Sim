@@ -50,6 +50,5 @@ namespace UIViewTargetLineCheckbox {
         }
 
         SDL_RenderFillRect(renderer, &rect);
-        std::cout<<"Making RECT! "<<"x,y "<<rect.x<<" "<<rect.y;
     }
 }

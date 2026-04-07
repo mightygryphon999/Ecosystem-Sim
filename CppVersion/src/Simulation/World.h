@@ -12,7 +12,7 @@ namespace World {
 
     extern ChunkData::Chunk chunks_map_main[world_map_size][world_map_size];
 
-    int init();
+    int init(bool testing, int testingMovingAmount);
 
     int simulation_step(bool testing);
 } // World

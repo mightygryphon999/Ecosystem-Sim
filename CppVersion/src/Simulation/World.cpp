@@ -12,7 +12,7 @@ namespace World {
 
     ChunkData::Chunk chunks_map_main[world_map_size][world_map_size];
 
-    int setup_chunks(ChunkData::Chunk (&chunks_map)[world_map_size][world_map_size]){
+    int setup_chunks(ChunkData::Chunk (&chunks_map)[world_map_size][world_map_size], int testingAmount){
         int i = 0;
         int j = 0;
 
@@ -33,7 +33,9 @@ namespace World {
                     chunks_map[i][j].test_points.push_back({chunks_map[i][j].x + chunks_map[i][j].Cw/2,chunks_map[i][j].y + chunks_map[i][j].Cw/2,false, test_points_id});
                 }
                 if (dist(rng) == 0) {
-                    chunks_map[i][j].test_points.push_back({chunks_map[i][j].x + chunks_map[i][j].Cw/2,chunks_map[i][j].y + chunks_map[i][j].Cw/2,true, test_points_id});
+                    for (int l = 0; l < testingAmount + 1; l++) {
+                        chunks_map[i][j].test_points.push_back({chunks_map[i][j].x + chunks_map[i][j].Cw/2,chunks_map[i][j].y + chunks_map[i][j].Cw/2,true, test_points_id});
+                    }
                 }
 
                 test_points_id++;
@@ -78,9 +80,9 @@ namespace World {
         }
     }
 
-    int init()
+    int init(bool testing, int testingMovingAmount)
     {
-        int success = setup_chunks(chunks_map_main);
+        int success = setup_chunks(chunks_map_main, testingMovingAmount);
 
         if (!success) {
             return 1;

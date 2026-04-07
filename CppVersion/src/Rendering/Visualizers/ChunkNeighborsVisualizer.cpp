@@ -34,17 +34,14 @@ namespace ChunkNeighborsVisualizer {
             std::cout<<"Detected key";
             switch (e->key.scancode) {
                 case SDL_SCANCODE_0: {
-                    std::cout<<"Detected key 0";
                     mode = 0;
                     break;
                 }
                 case SDL_SCANCODE_1 : {
-                    std::cout<<"Detected key 1";
                     mode = 1;
                     break;
                 }
                 case SDL_SCANCODE_2 : {
-                    std::cout<<"Detected key 2";
                     mode = 2;
                     break;
                 }

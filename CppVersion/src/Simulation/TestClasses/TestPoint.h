@@ -11,6 +11,8 @@ namespace TestPoint {
         bool moving;
         int id;
         float targetX, targetY;
+
+        void random_move();
     };
 } // TestPoint
 
