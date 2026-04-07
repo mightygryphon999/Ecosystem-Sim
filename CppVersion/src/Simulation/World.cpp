@@ -11,6 +11,7 @@
 namespace World {
 
     ChunkData::Chunk chunks_map_main[world_map_size][world_map_size];
+    std::vector<int> chunk_id;
 
     int setup_chunks(ChunkData::Chunk (&chunks_map)[world_map_size][world_map_size], int testingAmount){
         int i = 0;
@@ -25,8 +26,10 @@ namespace World {
 
         for (i = 0; i < world_map_size; i++) {
             for (j = 0; j < world_map_size; j++) {
-                const ChunkData::Chunk c = {static_cast<float>(i) * WORLD_CHUNK_SIZE,static_cast<float>(j) * WORLD_CHUNK_SIZE, WORLD_CHUNK_SIZE};
+                const ChunkData::Chunk c = {static_cast<float>(i) * WORLD_CHUNK_SIZE,static_cast<float>(j) * WORLD_CHUNK_SIZE, WORLD_CHUNK_SIZE, (j * world_map_size) + i};
                 chunks_map[i][j] = c;
+
+                chunk_id.push_back(c.id);
 
                 // for spawning test points randomly
                 if (dist(rng) == 1) {
@@ -78,6 +81,7 @@ namespace World {
                 }
             }
         }
+        return 0;
     }
 
     int init(bool testing, int testingMovingAmount)

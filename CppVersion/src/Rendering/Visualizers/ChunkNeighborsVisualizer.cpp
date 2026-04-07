@@ -116,8 +116,8 @@ namespace ChunkNeighborsVisualizer {
             for (int y = 0; y < World::world_map_size; y++) {
                 if (flooredX == x && flooredY == y) {
                     found_chunk = true;
-                    for (ChunkData::Chunk* &chunk : World::chunks_map_main[x][y].cached_chunks[range].chunks) {
-                        chunk->visuals.filled = true;
+                    for (int &chunk_id : World::chunks_map_main[x][y].cached_chunks[range].chunks) {
+                        World::chunks_map_main[(chunk_id - 1) % World::world_map_size][static_cast<int>(std::floor((chunk_id-1)/World::world_map_size))].visuals.filled = true;
                     }
                     break;
                 }

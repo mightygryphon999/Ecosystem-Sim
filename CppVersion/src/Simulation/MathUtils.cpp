@@ -46,22 +46,23 @@ namespace MathUtils {
                 continue;
             }
             for (int b = 0; b < chunk_list.chunks.size(); b++) {
-                if (chunk_list.chunks[b]->test_points.size() < 1) {
+                ChunkData::Chunk &chunk = World::chunks_map_main[(chunk_list.chunks[b] - 1) % World::world_map_size][static_cast<int>(std::floor((chunk_list.chunks[b]-1)/World::world_map_size))];
+                if (chunk.test_points.size() < 1) {
                     continue;
                 }
-                for (int i = 0; i < chunk_list.chunks[b]->test_points.size(); i++) {
-                    TestPoint::test_point point = chunk_list.chunks[b]->test_points[i];
+                for (int i = 0; i < chunk.test_points.size(); i++) {
+                    TestPoint::test_point point = chunk.test_points[i];
                     if ((point.x == pos_x && point.y == pos_y) || point.moving) {
                         continue;
                     }
-                    float distance = distance_between_two_points(chunk_list.chunks[b]->test_points[i].x, chunk_list.chunks[b]->test_points[i].y, pos_x, pos_y);
+                    float distance = distance_between_two_points(chunk.test_points[i].x, chunk.test_points[i].y, pos_x, pos_y);
                     if (distance <= range * range && smallest_distance > distance) {
                         if (distance <= 50) {
                             point.random_move();
                             continue;
                         }
                         smallest_distance = distance;
-                        best = chunk_list.chunks[b]->test_points[i];
+                        best = chunk.test_points[i];
                     }
                 }
             }

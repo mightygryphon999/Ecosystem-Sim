@@ -11,6 +11,7 @@ namespace World {
     constexpr int world_map_size = WORLD_SIZE / WORLD_CHUNK_SIZE;
 
     extern ChunkData::Chunk chunks_map_main[world_map_size][world_map_size];
+    extern std::vector<int> chunk_id;
 
     int init(bool testing, int testingMovingAmount);
 
