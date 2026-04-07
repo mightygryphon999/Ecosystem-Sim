@@ -32,7 +32,7 @@ int main() {
 
     int exitCode{ 0 };
 
-    if (World::init(true, 100) == 1) {
+    if (World::init(true, 50) == 1) {
         exitCode = 2;
     }
     else if (Renderer::init() == false) {

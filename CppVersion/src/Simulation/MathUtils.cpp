@@ -25,7 +25,7 @@ namespace MathUtils {
                 }
                 float distance = distance_between_two_points(parent_chunk.test_points[i].x, parent_chunk.test_points[i].y, pos_x, pos_y);
                 if (distance <= range * range && smallest_distance > distance && distance != 0) {
-                    if (pos_x == point.x && pos_y == point.y) {
+                    if (distance <= 50) {
                         point.random_move();
                         continue;
                     }
@@ -56,7 +56,7 @@ namespace MathUtils {
                     }
                     float distance = distance_between_two_points(chunk_list.chunks[b]->test_points[i].x, chunk_list.chunks[b]->test_points[i].y, pos_x, pos_y);
                     if (distance <= range * range && smallest_distance > distance) {
-                        if (pos_x == point.x && pos_y == point.y) {
+                        if (distance <= 50) {
                             point.random_move();
                             continue;
                         }
