@@ -21,6 +21,8 @@ namespace ChunkNeighborsVisualizer {
     int mode{ 2 };
     int active_points{ 0 };
     int active_moving_points{ 0 };
+    enum class DisplayType {POINT_MAP, DENSITY_MAP};
+    DisplayType display_type = DisplayType::POINT_MAP;
     SDL_FRect rectT;
 
     void present_chunk_grid(SDL_Renderer* &renderer);
@@ -144,32 +146,38 @@ namespace ChunkNeighborsVisualizer {
             for (int y = 0; y < World::world_map_size; y++) {
                 SDL_FRect rect {x * kCellSize, y * kCellSize, kCellSize, kCellSize};
                 SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+                if (display_type == DisplayType::DENSITY_MAP) {
+                    SDL_SetRenderDrawColor(renderer, 0, 0, 255, World::chunks_map_main[x][y].test_points.size() * 0.51f);
+                    World::chunks_map_main[x][y].visuals.filled = true;
+                }
                 if (World::chunks_map_main[x][y].visuals.filled && mode != 1) {
                     SDL_RenderFillRect(renderer, &rect);
                 }
                 else {
                     SDL_RenderRect(renderer, &rect);
                 }
-                for (int i = 0; i < World::chunks_map_main[x][y].test_points.size(); i++) {
-                    TestPoint::test_point &point = World::chunks_map_main[x][y].test_points[i];
-                    rectT = {point.x, point.y, 5, 5};
+                if (display_type == DisplayType::POINT_MAP) {
+                    for (int i = 0; i < World::chunks_map_main[x][y].test_points.size(); i++) {
+                        TestPoint::test_point &point = World::chunks_map_main[x][y].test_points[i];
+                        rectT = {point.x, point.y, 5, 5};
 
-                    // Render the movement direction
-                    if (display_test_targets && point.moving && point.targetX != point.x && point.targetY != point.y) {
-                        SDL_SetRenderDrawColor(renderer,255,255,255,1.0f);
-                        SDL_RenderLine(renderer, point.x, point.y, point.targetX, point.targetY);
-                    }
+                        // Render the movement direction
+                        if (display_test_targets && point.moving && point.targetX != point.x && point.targetY != point.y) {
+                            SDL_SetRenderDrawColor(renderer,255,255,255,1.0f);
+                            SDL_RenderLine(renderer, point.x, point.y, point.targetX, point.targetY);
+                        }
 
-                    // Set color then render the point
-                    if (point.moving) {
-                        active_moving_points += 1;
-                        SDL_SetRenderDrawColor(renderer, 0, 0, 255, 1.0f);
+                        // Set color then render the point
+                        if (point.moving) {
+                            active_moving_points += 1;
+                            SDL_SetRenderDrawColor(renderer, 0, 0, 255, 1.0f);
+                        }
+                        else {
+                            active_points += 1;
+                            SDL_SetRenderDrawColor(renderer, 0, 255, 0, 1.0f);
+                        }
+                        SDL_RenderFillRect(renderer, &rectT);
                     }
-                    else {
-                        active_points += 1;
-                        SDL_SetRenderDrawColor(renderer, 0, 255, 0, 1.0f);
-                    }
-                    SDL_RenderFillRect(renderer, &rectT);
                 }
             }
         }
