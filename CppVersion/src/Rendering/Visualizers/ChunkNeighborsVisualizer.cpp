@@ -22,7 +22,7 @@ namespace ChunkNeighborsVisualizer {
     int active_points{ 0 };
     int active_moving_points{ 0 };
     enum class DisplayType {POINT_MAP, DENSITY_MAP};
-    DisplayType display_type = DisplayType::POINT_MAP;
+    DisplayType display_type = DisplayType::DENSITY_MAP;
     SDL_FRect rectT;
 
     void present_chunk_grid(SDL_Renderer* &renderer);
