@@ -46,7 +46,8 @@ namespace MathUtils {
                 continue;
             }
             for (int b = 0; b < chunk_list.chunks.size(); b++) {
-                ChunkData::Chunk &chunk = World::chunks_map_main[(chunk_list.chunks[b] - 1) % World::world_map_size][static_cast<int>(std::floor((chunk_list.chunks[b]-1)/World::world_map_size))];
+                int chunk_id = chunk_list.chunks[b];
+                ChunkData::Chunk &chunk = World::chunks_map_main[chunk_id % World::world_map_size][chunk_id / World::world_map_size];
                 if (chunk.test_points.size() < 1) {
                     continue;
                 }

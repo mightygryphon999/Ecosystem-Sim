@@ -126,15 +126,10 @@ namespace ChunkNeighborsVisualizer {
             for (int y = 0; y < World::world_map_size; y++) {
                 if (flooredX == x && flooredY == y) {
                     found_chunk = true;
-                    std::cout << "Looking up range=" << range << "\n";
-                    std::cout << "Selected chunk x=" << x << " y=" << y
-                          << " id=" << World::chunks_map_main[x][y].id
-                          << " neighbor count=" << World::chunks_map_main[x][y].cached_chunks[range].chunks.size() << "\n";
                     for (int &chunk_id : World::chunks_map_main[x][y].cached_chunks[range].chunks) {
-                        World::chunks_map_main[(chunk_id - 1) % World::world_map_size][static_cast<int>(std::floor((chunk_id-1)/World::world_map_size))].visuals.filled = true;
+                        World::chunks_map_main[chunk_id % World::world_map_size][chunk_id / World::world_map_size].visuals.filled = true;
                         int cx = chunk_id % World::world_map_size;
                         int cy = chunk_id / World::world_map_size;
-                        std::cout << "id=" << chunk_id << " cx=" << cx << " cy=" << cy << "\n";
                     }
                     break;
                 }

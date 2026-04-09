@@ -30,7 +30,7 @@ namespace ChunkData {
 
 	    for (i = step; i <= max_range; i += step){
 	        int range = i;
-	        for (int x_new = 0; x_new < world_map_size_chunks + 1; x_new++){
+	        for (int x_new = 0; x_new < world_map_size_chunks; x_new++){
 	            for (int y_new = 0; y_new < world_map_size_chunks; y_new++){
 	                Chunk &testing_chunk = chunks_map[x_new][y_new];
 
