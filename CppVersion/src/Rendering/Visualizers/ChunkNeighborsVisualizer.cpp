@@ -47,6 +47,14 @@ namespace ChunkNeighborsVisualizer {
                     mode = 2;
                     break;
                 }
+                case SDL_SCANCODE_TAB : {
+                    if (display_type == DisplayType::DENSITY_MAP) {
+                        display_type = DisplayType::POINT_MAP;
+                    }
+                    else {
+                        display_type = DisplayType::DENSITY_MAP;
+                    }
+                }
             }
         }
     }
@@ -88,7 +96,7 @@ namespace ChunkNeighborsVisualizer {
                     found_chunk = true;
                     TestPoint::test_point throw_away;
                     TestPoint::test_point point = MathUtils::find_nearest_connection_test_points(World::chunks_map_main[x][y], mouse_x, mouse_y, range, throw_away);
-                    SDL_SetRenderDrawColor(renderer, 255,255,255,1.0f);
+                    SDL_SetRenderDrawColor(renderer, 255,255,255,255);
                     SDL_RenderLine(renderer, mouse_x, mouse_y, point.x, point.y);
                     break;
                 }
@@ -147,7 +155,10 @@ namespace ChunkNeighborsVisualizer {
                 SDL_FRect rect {x * kCellSize, y * kCellSize, kCellSize, kCellSize};
                 SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
                 if (display_type == DisplayType::DENSITY_MAP) {
-                    SDL_SetRenderDrawColor(renderer, 0, 0, 255, World::chunks_map_main[x][y].test_points.size() * 0.51f);
+                    Uint8 alpha = static_cast<Uint8>(std::min(255.0f, World::chunks_map_main[x][y].test_points.size() * 0.9f));
+                    std::cout<<std::to_string(alpha)<<std::endl;
+                    SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+                    SDL_SetRenderDrawColor(renderer, 0, 0, 255, alpha);
                     World::chunks_map_main[x][y].visuals.filled = true;
                 }
                 if (World::chunks_map_main[x][y].visuals.filled && mode != 1) {
@@ -163,18 +174,18 @@ namespace ChunkNeighborsVisualizer {
 
                         // Render the movement direction
                         if (display_test_targets && point.moving && point.targetX != point.x && point.targetY != point.y) {
-                            SDL_SetRenderDrawColor(renderer,255,255,255,1.0f);
+                            SDL_SetRenderDrawColor(renderer,255,255,255,255);
                             SDL_RenderLine(renderer, point.x, point.y, point.targetX, point.targetY);
                         }
 
                         // Set color then render the point
                         if (point.moving) {
                             active_moving_points += 1;
-                            SDL_SetRenderDrawColor(renderer, 0, 0, 255, 1.0f);
+                            SDL_SetRenderDrawColor(renderer, 0, 0, 255, 255);
                         }
                         else {
                             active_points += 1;
-                            SDL_SetRenderDrawColor(renderer, 0, 255, 0, 1.0f);
+                            SDL_SetRenderDrawColor(renderer, 0, 255, 0, 255);
                         }
                         SDL_RenderFillRect(renderer, &rectT);
                     }

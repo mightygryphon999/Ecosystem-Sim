@@ -33,6 +33,7 @@ namespace Renderer {
                 gScreenRenderer = SDL_CreateRenderer(gWindow,nullptr);
                 if (gScreenRenderer == nullptr) {
                     SDL_Log("Couldnt get the renderer or create it");
+                    SDL_SetRenderDrawBlendMode(gScreenRenderer, SDL_BLENDMODE_BLEND);
                     success = false;
                 }
             }
