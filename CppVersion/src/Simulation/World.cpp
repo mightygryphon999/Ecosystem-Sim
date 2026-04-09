@@ -50,7 +50,7 @@ namespace World {
     int setup_cached_chunks(){
         for (int x = 0; x < world_map_size; x++) {
             for (int y = 0; y < world_map_size; y++) {
-                chunks_map_main[x][y]._setup_cached_chunks(250, 10, chunks_map_main);
+                chunks_map_main[x][y]._setup_cached_chunks(910, 10, chunks_map_main);
             }
         }
         return 1;

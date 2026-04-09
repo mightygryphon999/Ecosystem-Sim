@@ -28,9 +28,9 @@ namespace ChunkData {
 
 		std::unordered_set<int> chunks_already_added;
 
-	    for (i = 0; i < max_range; i += step){
+	    for (i = step; i <= max_range; i += step){
 	        int range = i;
-	        for (int x_new = 0; x_new < world_map_size_chunks; x_new++){
+	        for (int x_new = 0; x_new < world_map_size_chunks + 1; x_new++){
 	            for (int y_new = 0; y_new < world_map_size_chunks; y_new++){
 	                Chunk &testing_chunk = chunks_map[x_new][y_new];
 
@@ -40,8 +40,8 @@ namespace ChunkData {
 	                float Ry = testing_chunk.y;
 	                const float Rw = testing_chunk.Cw;
 	                const int R = range;
-	                const float closestX = std::clamp(Cx, Rx, Rx + Rw);
-	                const float closestY = std::clamp(Cy, Ry, Ry + Rw);
+	                const float closestX = Rx + Rw / 2;
+	                const float closestY = Ry + Rw / 2;
 	                const float distanceX = Cx - closestX;
 	                const float distanceY = Cy - closestY;
 	                const float distanceSquared = (distanceX*distanceX)+(distanceY*distanceY);
