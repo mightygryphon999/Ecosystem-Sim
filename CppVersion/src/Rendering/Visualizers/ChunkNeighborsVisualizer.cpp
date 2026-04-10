@@ -128,8 +128,6 @@ namespace ChunkNeighborsVisualizer {
                     found_chunk = true;
                     for (int &chunk_id : World::chunks_map_main[x][y].cached_chunks[range].chunks) {
                         World::chunks_map_main[chunk_id % World::world_map_size][chunk_id / World::world_map_size].visuals.filled = true;
-                        int cx = chunk_id % World::world_map_size;
-                        int cy = chunk_id / World::world_map_size;
                     }
                     break;
                 }
