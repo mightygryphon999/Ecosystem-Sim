@@ -43,15 +43,22 @@ add_executable(${PROJECT_NAME} src/main.cpp
         src/Compute/Simulation/SimVulkanHandler.h
         src/Compute/Simulation/SimVulkanHandler.cpp
         src/Compute/Simulation/SimVulkanHandler.cpp
+        src/Rendering/VulkanRendering/VulkanBackend.cpp
+        src/Rendering/VulkanRendering/VulkanBackend.h
 )
 
 set(SDL3_ROOT "/opt/homebrew/opt/sdl3")
+
+find_package(Vulkan REQUIRED)
+find_package(glfw3 REQUIRED)
+
+target_link_libraries(${PROJECT_NAME} PRIVATE glfw)
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${SDL3_ROOT}/include)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE ${SDL3_ROOT}/lib/libSDL3.dylib)
 
-find_package (Vulkan REQUIRED)
+target_include_directories(${PROJECT_NAME} PRIVATE "${Vulkan_INCLUDE_DIR}")
 
 add_library(VulkanCppModule)
 add_library(Vulkan::cppm ALIAS VulkanCppModule)

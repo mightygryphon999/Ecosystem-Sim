@@ -5,6 +5,7 @@
 #include <SDL3/SDL_main.h>
 #include "Rendering/SimulationInteractions.h"
 #include <chrono>
+#include "Rendering/VulkanRendering/VulkanBackend.h"
 #include "config.h"
 
 int frameCount{ 0 };
@@ -52,6 +53,8 @@ int main() {
         float mouseScrollY{ 0.0f };
 
         while (quit == false) {
+            VulkanBackend::main();
+            return 0;
             frame_rate();
             mouseScrollY = 0;
             while (SDL_PollEvent(&e) == true) {

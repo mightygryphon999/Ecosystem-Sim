@@ -9,23 +9,16 @@
 import vulkan_hpp;
 #endif
 
+#include <SDL3/SDL_vulkan.h>
+#define chk
+
 #include <iostream>
 #include <stdexcept>
 #include <cstdlib>
 
 namespace SimVulkanHandler {
     void _init() {
-        constexpr vk::ApplicationInfo appInfo{.pApplicationName   = "EcosystemSim",
-                                      .applicationVersion = VK_MAKE_VERSION( 1, 0, 0 ),
-                                      .pEngineName        = "EcosystemSim",
-                                      .engineVersion      = VK_MAKE_VERSION( 1, 0, 0 ),
-                                      .apiVersion         = vk::ApiVersion14};
 
-        vk::InstanceCreateInfo createInfo{
-            .pApplicationInfo = &appInfo
-        };
-
-        instance = vk::raii::Instance(context, createInfo);
     }
     void _main() {
 
