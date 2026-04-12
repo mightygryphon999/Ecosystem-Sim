@@ -4,8 +4,10 @@ project(EcosystemSimulator)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(CMAKE_CXX_COMPILER "/usr/bin/clang++")
-set(CMAKE_C_COMPILER "/usr/bin/clang")
+set(CMAKE_CXX_SCAN_FOR_MODULES ON)
+
+set(CMAKE_CXX_COMPILER "/opt/homebrew/opt/llvm/bin/clang++")
+set(CMAKE_C_COMPILER "/opt/homebrew/opt/llvm/bin/clang")
 
 add_executable(${PROJECT_NAME} src/main.cpp
         src/Simulation/Chunk.cpp
@@ -37,6 +39,10 @@ add_executable(${PROJECT_NAME} src/main.cpp
         src/Rendering/UI/UIElements/LayoutElements/UIVerticalLayout.cpp
         src/Rendering/UI/UIElements/LayoutElements/UIVerticalLayout.h
         src/Rendering/UI/UIElements/UIElement.h
+        src/Compute/Simulation/SimVulkanHandler.cpp
+        src/Compute/Simulation/SimVulkanHandler.h
+        src/Compute/Simulation/SimVulkanHandler.cpp
+        src/Compute/Simulation/SimVulkanHandler.cpp
 )
 
 set(SDL3_ROOT "/opt/homebrew/opt/sdl3")
@@ -44,6 +50,34 @@ set(SDL3_ROOT "/opt/homebrew/opt/sdl3")
 target_include_directories(${PROJECT_NAME} PRIVATE ${SDL3_ROOT}/include)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE ${SDL3_ROOT}/lib/libSDL3.dylib)
+
+find_package (Vulkan REQUIRED)
+
+add_library(VulkanCppModule)
+add_library(Vulkan::cppm ALIAS VulkanCppModule)
+
+target_compile_definitions(VulkanCppModule PUBLIC
+        VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1
+        VULKAN_HPP_NO_STRUCT_CONSTRUCTORS=1
+)
+
+target_compile_definitions(${PROJECT_NAME} PRIVATE
+        VULKAN_HPP_DISPATCH_LOADER_DYNAMIC=1
+        VULKAN_HPP_NO_STRUCT_CONSTRUCTORS=1
+)
+
+target_include_directories(VulkanCppModule PRIVATE "${Vulkan_INCLUDE_DIR}")
+
+target_link_libraries(VulkanCppModule PUBLIC Vulkan::Vulkan)
+
+set_target_properties(VulkanCppModule PROPERTIES CXX_STANDARD 20)
+
+target_sources(VulkanCppModule
+        PUBLIC
+        FILE_SET cxx_modules TYPE CXX_MODULES
+        BASE_DIRS "${Vulkan_INCLUDE_DIR}"
+        FILES "${Vulkan_INCLUDE_DIR}/vulkan/vulkan.cppm"
+)
 
 if(APPLE)
     find_library(COCOA_LIBRARY Cocoa)
