@@ -5,8 +5,11 @@
 #include "VulkanBackend.h"
 
 #include <iostream>
+#define GLFW_EXPOSE_NATIVE_COCOA
 #include <vulkan/vulkan.h>
+#define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
+#include <GLFW/glfw3native.h>
 
 #include <vector>
 #include <cstring>
@@ -238,6 +241,12 @@ namespace VulkanBackend {
         glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
         window = glfwCreateWindow(WIDTH, HEIGHT, "Ecosystem Sim", nullptr, nullptr);
+    }
+
+    void createSurface() {
+        if (glfwCreateWindowSurface(instance, window, nullptr, &surface) != VK_SUCCESS) {
+            throw std::runtime_error("failed to create window surface!");
+        }
     }
 
     void mainLoop() {

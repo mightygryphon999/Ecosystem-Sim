@@ -19,6 +19,7 @@ namespace VulkanBackend {
     inline VkPhysicalDevice physicalDevice = VK_NULL_HANDLE;
     inline VkDevice device;
     inline VkQueue graphicsQueue;
+    inline VkSurfaceKHR surface;
 
     const std::vector<const char*> validationLayers = {
         "VK_LAYER_KHRONOS_validation"
