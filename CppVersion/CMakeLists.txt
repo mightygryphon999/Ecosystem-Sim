@@ -75,6 +75,8 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
 
 target_include_directories(VulkanCppModule PRIVATE "${Vulkan_INCLUDE_DIR}")
 
+target_link_libraries(${PROJECT_NAME} PRIVATE Vulkan::Vulkan)
+
 target_link_libraries(VulkanCppModule PUBLIC Vulkan::Vulkan)
 
 set_target_properties(VulkanCppModule PROPERTIES CXX_STANDARD 20)
@@ -94,6 +96,6 @@ if(APPLE)
 endif()
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
-        BUILD_WITH_INSTALL_RPATH TRUE
-        INSTALL_RPATH "${SDL3_ROOT}/lib"
+        BUILD_RPATH "/opt/homebrew/lib;/opt/homebrew/opt/sdl3/lib"
+        INSTALL_RPATH "/opt/homebrew/lib;/opt/homebrew/opt/sdl3/lib"
 )
