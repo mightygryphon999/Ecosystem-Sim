@@ -39,12 +39,16 @@ add_executable(${PROJECT_NAME} src/main.cpp
         src/Rendering/UI/UIElements/LayoutElements/UIVerticalLayout.cpp
         src/Rendering/UI/UIElements/LayoutElements/UIVerticalLayout.h
         src/Rendering/UI/UIElements/UIElement.h
-        src/Compute/Simulation/SimVulkanHandler.cpp
-        src/Compute/Simulation/SimVulkanHandler.h
-        src/Compute/Simulation/SimVulkanHandler.cpp
-        src/Compute/Simulation/SimVulkanHandler.cpp
+        src/Compute/Vulkan/Simulation/SimVulkanHandler.cpp
+        src/Compute/Vulkan/Simulation/SimVulkanHandler.h
+        src/Compute/Vulkan/Simulation/SimVulkanHandler.cpp
+        src/Compute/Vulkan/Simulation/SimVulkanHandler.cpp
         src/Rendering/VulkanRendering/VulkanBackend.cpp
         src/Rendering/VulkanRendering/VulkanBackend.h
+        include/glad/glad.h
+        include/KHR/khrplatform.h
+        src/Compute/OpenGL/Simulation/OpenGLComputeHandler.cpp
+        src/Compute/OpenGL/Simulation/OpenGLComputeHandler.h
 )
 
 set(SDL3_ROOT "/opt/homebrew/opt/sdl3")
