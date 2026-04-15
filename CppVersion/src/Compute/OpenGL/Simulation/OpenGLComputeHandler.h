@@ -20,11 +20,14 @@ class OpenGLComputeHandler {
     const int WG = 256; // local size x in GLSL
 
     GLuint prog = 0;
+    GLint locDT = 0;
+    GLint locCount = 0;
 
     // note for future: implement an SSBO value with GLuint for every buffer value
 
     void startCompute();
     void runCompute();
+    void deleteCompute();
 };
 
 } // OpenGLComputeHandler

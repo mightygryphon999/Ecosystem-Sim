@@ -57,5 +57,24 @@ namespace OpenGLComputeHandler {
     }
     void OpenGLComputeHandler::startCompute() {
         prog = createComputeProgram(loadFile("simulation_compute.comp"));
+
+        locDT = glGetUniformLocation(prog, "uDeltaTime");
+        locCount = glGetUniformLocation(prog, "uCount");
+    }
+
+    void OpenGLComputeHandler::runCompute() {
+        glUseProgram(prog);
+        glUniform1ui(locCount, N);
+
+        glDispatchCompute((N+WG - 1) / WG, 1, 1);
+
+        // use glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, (ssbo name)) for adding the data
+
+        glMemoryBarrier(GL_SHADER_STORAGE_BARRIER_BIT);
+    }
+
+    void OpenGLComputeHandler::deleteCompute() {
+        glDeleteBuffers(); // input names and such into this starting with 1, name
+        glDeleteProgram(prog);
     }
 }
