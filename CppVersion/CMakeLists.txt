@@ -49,6 +49,8 @@ add_executable(${PROJECT_NAME} src/main.cpp
         include/KHR/khrplatform.h
         src/Compute/OpenGL/Simulation/OpenGLComputeHandler.cpp
         src/Compute/OpenGL/Simulation/OpenGLComputeHandler.h
+        src/Compute/OpenGL/Simulation/OpenGLDataStructsTransfer.cpp
+        src/Compute/OpenGL/Simulation/OpenGLDataStructsTransfer.h
 )
 
 set(SDL3_ROOT "/opt/homebrew/opt/sdl3")

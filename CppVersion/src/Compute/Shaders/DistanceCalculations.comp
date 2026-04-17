@@ -1,0 +1,127 @@
+#version 430 core
+
+layout(local_size_x = 20, local_size_y = 20, local_size_z = 1) in;
+
+struct Chunk {
+    float x;
+    float y;
+    float Cw;
+    int id;
+
+    uint cached_start;
+    uint cached_count;
+
+    uint test_points_start;
+    uint test_points_count;
+};
+
+layout (std430, binding = 0) buffer DataBuffer {
+    Chunk chunks[];
+};
+
+struct CachedEntry {
+    int key;
+    uint start;
+    uint count;
+};
+
+layout (std430, binding = 1) buffer CachedEntries {
+    CachedEntry cached_chunks[];
+};
+
+layout (std430, binding = 2) buffer CachedIndices {
+    int chunk_indices[];
+};
+
+struct TestPoint{
+    float x;
+    float y;
+    float range;
+    uint moving;
+};
+
+layout (std430, binding = 3) buffer TestPoints {
+    TestPoint test_points[];
+};
+
+layout (std430, binding = 4) buffer MaxRange {
+    uint max_chunk_search_range;
+};
+
+layout (std430, binding = 5) buffer MovementVars {
+    uint movement_amount;
+    uint movement_step;
+};
+
+uniform uint grid_length;
+
+TestPoint find_closest_point(TestPoint p, float smallest_distance, Chunk c, uint test_point_index){
+    bool found_smallest = false;
+    TestPoint ps = p;
+
+    for (uint range_index = 0; range_index < max_chunk_search_range; range_index++){
+        CachedEntry e = cached_chunks[c.cached_start + range_index];
+        for (uint chunk_entry_id = 0; chunk_entry_id < e.count; chunk_entry_id++){
+            Chunk ct = chunks[chunk_indices[e.start + chunk_entry_id]];
+            for (uint test_point_testing_index = 0; test_point_testing_index < ct.test_points_count; test_point_testing_index++){
+                TestPoint tt = test_points[ct.test_points_start + test_point_testing_index];
+
+                vec2 test_point_a = vec2(tt.x, tt.y);
+                vec2 test_point_b = vec2(p.x, p.y);
+
+                float dist = distance(test_point_a, test_point_b);
+
+                if (dist <= p.range && dist < smallest_distance){
+                    ps = tt;
+                    smallest_distance = dist;
+                    found_smallest = true;
+                }
+            }
+        }
+    }
+    return ps;
+}
+
+vec2 move_towards(TestPoint target, TestPoint p, float move_amount, float step) {
+    vec2 pos = vec2(p.x, p.y);
+    vec2 target_pos = vec2(target.x, target.y);
+
+    vec2 dir = target_pos - pos;
+    float dist = length(dir);
+
+    if (dist <= 0.0001) {
+        return pos;
+    }
+
+    float speed = move_amount * step;
+
+    if (speed >= dist) {
+        return target_pos;
+    }
+
+    return pos + (dir / dist) * speed;
+}
+
+void main() {
+    uint chunkIndex = (gl_GlobalInvocationID.y * 20) + gl_GlobalInvocationID.x;
+
+    if (chunkIndex >= 400) return;
+
+    Chunk c = chunks[chunkIndex];
+
+    for (uint test_point_index = 0; test_point_index < c.test_points_count; test_point_index++){
+        TestPoint p = test_points[c.test_points_start + test_point_index];
+        float smallest_distance = 1000;
+
+        if (p.moving == 1) {
+            TestPoint ps = find_closest_point(p, smallest_distance, c, test_point_index);
+
+            vec2 new_pos = move_towards(ps, p, movement_amount, movement_step);
+
+            uint idx = c.test_points_start + test_point_index;
+
+            test_points[idx].x = new_pos.x;
+            test_points[idx].y = new_pos.y;
+        }
+    }
+}
