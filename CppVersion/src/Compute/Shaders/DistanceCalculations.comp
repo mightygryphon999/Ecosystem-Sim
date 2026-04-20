@@ -38,6 +38,8 @@ struct TestPoint{
     float y;
     float range;
     uint moving;
+    uint trash;
+    int chunk_id;
 };
 
 layout (std430, binding = 3) buffer TestPoints {
@@ -50,7 +52,26 @@ layout (std430, binding = 4) buffer MaxRange {
 
 layout (std430, binding = 5) buffer MovementVars {
     uint movement_amount;
+};
+
+layout (std430, binding = 6) buffer MovmentVarsSecond {
     uint movement_step;
+};
+
+struct MovedPoints{
+    float x;
+    float y;
+    float range;
+    uint moving;
+    int chunk_id;
+};
+
+layout (std430, binding = 7) buffer MovedPoints {
+    MovedPoints moved_points[20000];
+};
+
+layout(std430, binding = 8) buffer MovedCounter {
+    uint moved_count;
 };
 
 uniform uint grid_length;
@@ -82,6 +103,20 @@ TestPoint find_closest_point(TestPoint p, float smallest_distance, Chunk c, uint
     return ps;
 }
 
+uint cube_collisions(vec2 box_point_1, vec2 box_point_2, vec2 point){
+    if (point.x < box_point_1.x){
+        return 0;
+    } else if (point.y > box_point_1.y){
+        return 0;
+    } else if (point.x > box_point_2.x){
+        return 0;
+    } else if (point.y < box_point_2.y){
+        return 0;
+    } else {
+        return 1;
+    }
+}
+
 vec2 move_towards(TestPoint target, TestPoint p, float move_amount, float step) {
     vec2 pos = vec2(p.x, p.y);
     vec2 target_pos = vec2(target.x, target.y);
@@ -102,6 +137,10 @@ vec2 move_towards(TestPoint target, TestPoint p, float move_amount, float step) 
     return pos + (dir / dist) * speed;
 }
 
+vec2 snap_to_grid(vec2 pos, uint grid_size){
+    return floor(pos / grid_size);
+}
+
 void main() {
     uint chunkIndex = (gl_GlobalInvocationID.y * 20) + gl_GlobalInvocationID.x;
 
@@ -109,9 +148,13 @@ void main() {
 
     Chunk c = chunks[chunkIndex];
 
-    for (uint test_point_index = 0; test_point_index < c.test_points_count; test_point_index++){
+    for (int test_point_index = int(c.test_points_count) - 1; test_point_index >= 0 ; --test_point_index){
         TestPoint p = test_points[c.test_points_start + test_point_index];
         float smallest_distance = 1000;
+
+        if (p.trash == 1){
+            continue;
+        }
 
         if (p.moving == 1) {
             TestPoint ps = find_closest_point(p, smallest_distance, c, test_point_index);
@@ -122,6 +165,29 @@ void main() {
 
             test_points[idx].x = new_pos.x;
             test_points[idx].y = new_pos.y;
+
+            vec2 test_point_pos = vec2(ps.x, ps.y);
+            vec2 chunk_pos_top_left = vec2(chunks[ps.chunk_id].x, chunks[ps.chunk_id].y);
+            vec2 chunk_pos_bottom_right = vec2(chunks[ps.chunk_id].x + chunks[ps.chunk_id].Cw, chunks[ps.chunk_id].y + chunks[ps.chunk_id].Cw);
+
+            uint colliding = cube_collisions(chunk_pos_top_left, chunk_pos_bottom_right, test_point_pos);
+
+            if (!colliding){
+                vec2 grid_point = snap_to_grid(test_point_pos, 32);
+                int grid_points_chunk_index = int((grid_point.y * 20) + grid_point.x);
+
+                uint index = atomicAdd(moved_count, 1);
+
+                if (index < 20000){
+                    moved_points[index].x = new_pos.x;
+                    moved_points[index].y = new_pos.y;
+                    moved_points[index].range = ps.range;
+                    moved_points[index].chunk_id = ps.chunk_id;
+                    moved_points[index].moving = ps.moving;
+
+                    test_points[idx].trash = 1;
+                }
+            }
         }
     }
 }

@@ -63,6 +63,8 @@ namespace World {
             }
         }
 
+        // remove the following when the compute shader is implemented
+
         for (int x = 0; x < world_map_size; x++) {
             for (int y = 0; y < world_map_size; y++) {
                 auto& points = chunks_map_main[x][y].test_points;

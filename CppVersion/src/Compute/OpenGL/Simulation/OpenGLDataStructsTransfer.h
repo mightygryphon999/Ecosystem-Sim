@@ -4,6 +4,8 @@
 
 #ifndef C__VERSION_OPENGLDATASTRUCTSTRANSFER_H
 #define C__VERSION_OPENGLDATASTRUCTSTRANSFER_H
+#include <sys/types.h>
+#include <vector>
 
 namespace OpenGLDataStructsTransfer {
 
@@ -13,25 +15,34 @@ namespace OpenGLDataStructsTransfer {
         float Cw;
         int id;
 
-        int cached_start;
-        int cached_count;
+        uint cached_start;
+        uint cached_count;
 
-        int test_points_start;
-        int test_points_count;
+        uint test_points_start;
+        uint test_points_count;
     };
 
     struct CachedEntry {
         int key;
-        int start;
-        int end;
+        uint start;
+        uint count;
     };
 
-    struct TestPoint{
+    struct TestPointCompute{
         float x;
         float y;
         float range;
         int moving;
+        uint trash;
+        int chunk_id;
     };
+
+    inline std::vector<Chunk> chunks;
+    inline std::vector<CachedEntry> cached_chunks;
+    inline std::vector<int> chunk_indices;
+    inline std::vector<TestPointCompute> test_points;
+
+    void setup_data_test_points();
 } // OpenGLDataStructsTransfer
 
 #endif //C__VERSION_OPENGLDATASTRUCTSTRANSFER_H

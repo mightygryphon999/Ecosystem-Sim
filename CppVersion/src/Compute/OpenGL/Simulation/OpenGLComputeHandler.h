@@ -23,11 +23,27 @@ class OpenGLComputeHandler {
     GLint locDT = 0;
     GLint locCount = 0;
 
+    GLuint chunks;
+    GLuint cached_chunks;
+    GLuint chunk_indices;
+    GLuint test_points;
+    GLuint max_chunk_search_range;
+    GLuint movement_amount;
+    GLuint movement_step;
+    GLuint moved_count;
+
+    uint max_chunk_search_range_value = 910;
+    uint movement_amount_value = 1;
+    uint movement_step_value = 1;
+    uint moved_count_value = 0;
     // note for future: implement an SSBO value with GLuint for every buffer value
+
+    GLuint createSSBO(const void *data, GLsizeiptr bytes, GLuint bindpoint);
 
     void startCompute();
     void runCompute();
     void deleteCompute();
+    void generate_scalar_buffer();
 };
 
 } // OpenGLComputeHandler
