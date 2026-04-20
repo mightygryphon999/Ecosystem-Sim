@@ -4,12 +4,8 @@ project(EcosystemSimulator)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-set(CMAKE_CXX_SCAN_FOR_MODULES ON)
-
-set(CMAKE_CXX_COMPILER "/opt/homebrew/opt/llvm/bin/clang++")
-set(CMAKE_C_COMPILER "/opt/homebrew/opt/llvm/bin/clang")
-
-add_executable(${PROJECT_NAME} src/main.cpp
+add_executable(${PROJECT_NAME}
+        src/main.cpp
         src/Simulation/Chunk.cpp
         src/Simulation/Chunk.h
         src/Simulation/World.cpp
@@ -41,8 +37,6 @@ add_executable(${PROJECT_NAME} src/main.cpp
         src/Rendering/UI/UIElements/UIElement.h
         src/Compute/Vulkan/Simulation/SimVulkanHandler.cpp
         src/Compute/Vulkan/Simulation/SimVulkanHandler.h
-        src/Compute/Vulkan/Simulation/SimVulkanHandler.cpp
-        src/Compute/Vulkan/Simulation/SimVulkanHandler.cpp
         src/Rendering/VulkanRendering/VulkanBackend.cpp
         src/Rendering/VulkanRendering/VulkanBackend.h
         include/glad/glad.h
@@ -53,20 +47,23 @@ add_executable(${PROJECT_NAME} src/main.cpp
         src/Compute/OpenGL/Simulation/OpenGLDataStructsTransfer.h
 )
 
-set(SDL3_ROOT "/opt/homebrew/opt/sdl3")
-
+find_package(SDL3 CONFIG REQUIRED)
 find_package(Vulkan REQUIRED)
-find_package(glfw3 REQUIRED)
+find_package(glfw3 CONFIG REQUIRED)
 
-target_link_libraries(${PROJECT_NAME} PRIVATE glfw)
+target_link_libraries(${PROJECT_NAME}
+        PRIVATE
+        SDL3::SDL3
+        glfw
+        Vulkan::Vulkan
+)
 
-target_include_directories(${PROJECT_NAME} PRIVATE ${SDL3_ROOT}/include)
-
-target_link_libraries(${PROJECT_NAME} PRIVATE ${SDL3_ROOT}/lib/libSDL3.dylib)
-
-target_include_directories(${PROJECT_NAME} PRIVATE "${Vulkan_INCLUDE_DIR}")
+if (Vulkan_FOUND)
+    target_include_directories(${PROJECT_NAME} PRIVATE ${Vulkan_INCLUDE_DIRS})
+endif()
 
 add_library(VulkanCppModule)
+
 add_library(Vulkan::cppm ALIAS VulkanCppModule)
 
 target_compile_definitions(VulkanCppModule PUBLIC
@@ -79,29 +76,30 @@ target_compile_definitions(${PROJECT_NAME} PRIVATE
         VULKAN_HPP_NO_STRUCT_CONSTRUCTORS=1
 )
 
-target_include_directories(VulkanCppModule PRIVATE "${Vulkan_INCLUDE_DIR}")
-
-target_link_libraries(${PROJECT_NAME} PRIVATE Vulkan::Vulkan)
+if (Vulkan_FOUND)
+    target_include_directories(VulkanCppModule PRIVATE ${Vulkan_INCLUDE_DIRS})
+endif()
 
 target_link_libraries(VulkanCppModule PUBLIC Vulkan::Vulkan)
+target_link_libraries(${PROJECT_NAME} PRIVATE VulkanCppModule)
 
 set_target_properties(VulkanCppModule PROPERTIES CXX_STANDARD 20)
 
 target_sources(VulkanCppModule
         PUBLIC
         FILE_SET cxx_modules TYPE CXX_MODULES
-        BASE_DIRS "${Vulkan_INCLUDE_DIR}"
-        FILES "${Vulkan_INCLUDE_DIR}/vulkan/vulkan.cppm"
+        BASE_DIRS ${Vulkan_INCLUDE_DIRS}
+        FILES ${Vulkan_INCLUDE_DIRS}/vulkan/vulkan.cppm
 )
 
-if(APPLE)
+if (APPLE)
     find_library(COCOA_LIBRARY Cocoa)
     find_library(IOKIT_LIBRARY IOKit)
     find_library(COREVIDEO_LIBRARY CoreVideo)
-    target_link_libraries(${PROJECT_NAME} PRIVATE ${COCOA_LIBRARY} ${IOKIT_LIBRARY} ${COREVIDEO_LIBRARY})
-endif()
 
-set_target_properties(${PROJECT_NAME} PROPERTIES
-        BUILD_RPATH "/opt/homebrew/lib;/opt/homebrew/opt/sdl3/lib"
-        INSTALL_RPATH "/opt/homebrew/lib;/opt/homebrew/opt/sdl3/lib"
-)
+    target_link_libraries(${PROJECT_NAME} PRIVATE
+            ${COCOA_LIBRARY}
+            ${IOKIT_LIBRARY}
+            ${COREVIDEO_LIBRARY}
+    )
+endif()
