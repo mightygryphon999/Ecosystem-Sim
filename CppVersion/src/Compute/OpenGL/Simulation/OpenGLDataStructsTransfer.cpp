@@ -21,7 +21,7 @@ namespace OpenGLDataStructsTransfer {
         CachedEntry new_entry = {0,0,0};
         ChunkData::Chunk c;
         TestPointCompute p = {0,0,0,0};
-        Chunk new_chunk = {0,0,0,0,0,0,0,0};
+        ChunkE new_chunk = {0,0,0,0,0,0,0,0};
         TestPoint::test_point tp = {0,0,0,0,0,0};
 
         for (int x = 0; x < World::world_map_size; x++) {
@@ -84,6 +84,44 @@ namespace OpenGLDataStructsTransfer {
     void decode_data_test_points() {
         // use this to read and update the CPU side simulation
         // when running the GPU make it race ahead of the CPU for slightly faster sim times, have it do the next simulation step so that they CPU can use the original data dna the GPU uses a wrong but new data
+        ChunkData::Chunk new_chunk_map_main[World::world_map_size][World::world_map_size];
 
+        for (ChunkE c : chunks) {
+            ChunkData::Chunk new_chunk;
+
+            new_chunk.x = c.x;
+            new_chunk.y = c.y;
+            new_chunk.Cw = c.Cw;
+            new_chunk.id = c.id;
+
+            uint start = c.cached_start;
+            for (int i = 0; i < c.cached_count; i++) {
+                ChunkData::chunk_list new_chunk_list;
+
+                CachedEntry entry = cached_chunks[c.cached_start];
+
+                for (int i = entry.start; i < entry.start + entry.count) {
+                    ChunkE detected_chunk = chunks[i];
+
+                    new_chunk_list.chunks.push_back(detected_chunk.id);
+                }
+                new_chunk.cached_chunks[cached_chunks[c.cached_start].key] = new_chunk_list;
+            }
+
+            for (int i = c.test_points_start; i < c.test_points_start + c.test_points_count; i++) {
+                TestPointCompute cur_point = test_points[i];
+
+                TestPoint::test_point new_point;
+
+                new_point.x = cur_point.x;
+                new_point.id = cur_point.chunk_id;
+                new_point.moving = cur_point.moving;
+                new_point.y = cur_point.y;
+
+                new_chunk.test_points.push_back(new_point);
+            }
+        }
+
+        World::chunks_map_main = new_chunk_map_main;
     }
 } // OpenGLDataStructsTransfer

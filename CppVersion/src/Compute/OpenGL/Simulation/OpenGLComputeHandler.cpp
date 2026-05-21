@@ -96,7 +96,7 @@ namespace OpenGLComputeHandler {
         OpenGLDataStructsTransfer::setup_data_test_points();
 
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, chunks);
-        glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, OpenGLDataStructsTransfer::chunks.size() * sizeof(OpenGLDataStructsTransfer::Chunk), OpenGLDataStructsTransfer::chunks.data());
+        glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, OpenGLDataStructsTransfer::chunks.size() * sizeof(OpenGLDataStructsTransfer::ChunkE), OpenGLDataStructsTransfer::chunks.data());
 
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, chunks);
         glBufferSubData(GL_SHADER_STORAGE_BUFFER, 1, OpenGLDataStructsTransfer::cached_chunks.size() * sizeof(OpenGLDataStructsTransfer::CachedEntry), OpenGLDataStructsTransfer::cached_chunks.data());

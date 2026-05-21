@@ -9,7 +9,8 @@
 
 namespace OpenGLDataStructsTransfer {
 
-    struct Chunk {
+    // For encoding the data
+    struct ChunkE {
         float x;
         float y;
         float Cw;
@@ -37,12 +38,18 @@ namespace OpenGLDataStructsTransfer {
         int chunk_id;
     };
 
-    inline std::vector<Chunk> chunks;
+    inline std::vector<ChunkE> chunks;
     inline std::vector<CachedEntry> cached_chunks;
     inline std::vector<int> chunk_indices;
     inline std::vector<TestPointCompute> test_points;
 
     void setup_data_test_points();
+
+    // For decoding the data
+
+
+
+
 } // OpenGLDataStructsTransfer
 
 #endif //C__VERSION_OPENGLDATASTRUCTSTRANSFER_H
